@@ -35,11 +35,13 @@ root and not writable by anyone else.
 
 import argparse
 import asyncio
+import errno
 import logging
 import math
 import os
 import re
 import socket
+import stat
 import struct
 import sys
 import time
@@ -129,6 +131,7 @@ SOCK_LIMIT = 4096          # per-connection read buffer
 MAX_FOCUS_LEN = 256        # characters kept from a focus report
 FOCUS_TTL = 3.0            # fail safe if the sidecar stops heartbeating
 NATIVE_LOG_INTERVAL = 10.0 # seconds between 'left native' warnings
+IDLE_LOG_INTERVAL = 60.0   # seconds between 'nothing grabbed' warnings
 WRITE_SKIP_BYTES = 4096    # skip updates for a client this far behind
 WRITE_DROP_BYTES = 65536   # disconnect a client this far behind
 
@@ -1219,6 +1222,32 @@ def want_device(dev, path, our_paths):
     return grab
 
 
+def event_nodes():
+    """Every /dev/input/eventN, whether or not this process can open it.
+
+    evdev.list_devices() hides nodes the caller cannot open read-write, which
+    turns a missing or read-only device ACL into a daemon that runs forever,
+    grabs nothing, and says nothing. Enumerating the nodes ourselves lets the
+    open failure be seen and reported instead.
+    """
+    nodes = []
+    try:
+        names = os.listdir(DEV_DIR)
+    except OSError as err:
+        log.error("cannot list %s: %s", DEV_DIR, err)
+        return nodes
+    for name in names:
+        if not re.fullmatch(r"event[0-9]+", name):
+            continue
+        path = os.path.join(DEV_DIR, name)
+        try:
+            if stat.S_ISCHR(os.stat(path).st_mode):
+                nodes.append(path)
+        except OSError:
+            continue
+    return nodes
+
+
 def stable_specs():
     """Map each /dev/input/eventN to its most stable identifier.
 
@@ -1261,7 +1290,7 @@ def report_devices():
         digits = "".join(c for c in os.path.basename(path) if c.isdigit())
         return int(digits) if digits else 0
 
-    for path in sorted(list_devices(), key=event_num):
+    for path in sorted(event_nodes(), key=event_num):
         try:
             dev = InputDevice(path)
         except OSError as err:
@@ -1285,6 +1314,8 @@ async def main():
     states = {}
     tasks = {}
     seen = set()
+    denied = set()     # nodes we were not allowed to open
+    last_idle_log = -IDLE_LOG_INTERVAL
     our_paths = set()  # event nodes of our own uinput mirrors, never grabbed
     set_grab_health(False)
     if not phys_roundtrips():
@@ -1304,9 +1335,10 @@ async def main():
             # every input device caused visible input hiccups); a path is
             # forgotten when it disappears, so replugging re-probes it. Our
             # own mirror nodes are skipped so we never grab what we emit.
-            paths = set(list_devices())
+            paths = set(event_nodes())
             seen &= paths
             our_paths &= paths
+            denied &= paths
             # A hotplug event node can briefly precede its stable by-id link.
             # Reconsider the resolved strict target until it has a live pump,
             # while leaving unrelated keyboards permanently in `seen`.
@@ -1315,7 +1347,14 @@ async def main():
                 seen.add(path)
                 try:
                     dev = InputDevice(path)
-                except OSError:
+                except OSError as err:
+                    # Most of these are the keyboards and touchpads this
+                    # service is deliberately not allowed to open. They are
+                    # only worth a warning if nothing gets grabbed at all,
+                    # which the idle check below reports.
+                    if err.errno in (errno.EACCES, errno.EPERM):
+                        denied.add(path)
+                    log.debug("cannot open %s: %s", path, err)
                     continue
                 if not want_device(dev, path, our_paths):
                     dev.close()
@@ -1335,6 +1374,18 @@ async def main():
                     lambda done, target=path: _pump_done(
                         target, done, tasks, seen))
             await asyncio.sleep(0)
+            if not tasks and denied:
+                # Running but useless is the one state that has to explain
+                # itself: the device ACL is the usual reason, and a silent
+                # daemon here is indistinguishable from a broken feature.
+                now = time.monotonic()
+                if now - last_idle_log >= IDLE_LOG_INTERVAL:
+                    last_idle_log = now
+                    log.warning(
+                        "no mouse is grabbed and %d input node(s) could not "
+                        "be opened. The udev ACL for the bazzite-hyperscroll "
+                        "group is missing or read-only on the selected mouse "
+                        "(it must be rw); rerun install.sh", len(denied))
             sd_notify(f"WATCHDOG=1\nSTATUS=Mirroring {len(tasks)} mouse(s)")
             await asyncio.sleep(2)
     finally:

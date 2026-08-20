@@ -125,8 +125,13 @@ Things worth checking, in order:
    Shell version into the installed metadata - then log out and back in.
 2. You logged out and back in once after installing. A new extension cannot
    load into a running Wayland session.
-3. `hyperscrollctl doctor` shows a grabbed mouse. If not, `hyperscrollctl
-   devices` shows what the daemon sees and why each device is or is not used.
+3. `hyperscrollctl doctor` shows a grabbed mouse. If it says no mouse is
+   mirrored while `devices` lists one as used, the daemon can see the node as
+   root but not as its own account: the device ACL is missing or read-only.
+   It must be `rw`, because evdev nodes are opened `O_RDWR` and a read-only
+   ACL hides the device completely. `getfacl /dev/input/eventN` shows it, and
+   rerunning `./install.sh` repairs the rule. The daemon also says so in the
+   journal once a minute while it has nothing to grab.
 4. The app is not in `BLACKLIST`, and the pointer is over an application
    window rather than a panel or the overview.
 

@@ -175,8 +175,11 @@ udevadm settle
 
 for entry in "${selected[@]}"; do
     node=${entry%%$'\t'*}
-    if ! sudo -u "$service_account" test -r "$node"; then
+    if ! sudo -u "$service_account" sh -c "test -r '$node' && test -w '$node'"
+    then
         echo "The ACL for $node was not applied; refusing to start." >&2
+        echo "It must grant read AND write: python-evdev opens event nodes" >&2
+        echo "O_RDWR, and a read-only ACL hides the device entirely." >&2
         echo "Check /etc/udev/rules.d/99-bazzite-hyperscroll.rules against" >&2
         echo "    udevadm info --query=property --name=$node" >&2
         exit 1
@@ -209,10 +212,19 @@ if [[ $grabbed != true ]]; then
 fi
 
 extension_enabled=false
+as_user() {
+    sudo -u "$target_user" env \
+        XDG_RUNTIME_DIR="$runtime_dir" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus" "$@"
+}
 if [[ -S $runtime_dir/bus ]]; then
-    # Write the enabled-extension setting directly as well as asking the
-    # current Shell. A new Wayland extension cannot load code until the next
-    # login, but this guarantees that it loads automatically then.
+    # Ask the running Shell first: it owns the enabled-extensions list and
+    # will write its own copy back over a direct gsettings write. The direct
+    # write is the fallback for a Shell that has not loaded the new extension
+    # yet, which is the usual case on a first install.
+    if as_user gnome-extensions enable "$extension_uuid" 2>/dev/null; then
+        extension_enabled=true
+    fi
     if sudo -u "$target_user" env \
         XDG_RUNTIME_DIR="$runtime_dir" \
         DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus" \
@@ -220,10 +232,10 @@ if [[ -S $runtime_dir/bus ]]; then
         "$extension_uuid"; then
         extension_enabled=true
     fi
-    sudo -u "$target_user" env \
-        XDG_RUNTIME_DIR="$runtime_dir" \
-        DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus" \
-        gnome-extensions enable "$extension_uuid" >/dev/null 2>&1 || true
+    # Whatever the two attempts reported, the Shell's own view decides.
+    extension_state=$(as_user gnome-extensions info "$extension_uuid" \
+        2>/dev/null | sed -n 's/^ *Enabled: *//p')
+    [[ $extension_state == Yes ]] && extension_enabled=true
 fi
 
 echo
@@ -233,6 +245,8 @@ echo "Status/logs:      hyperscrollctl status | hyperscrollctl logs"
 if [[ $extension_enabled == true ]]; then
     echo "Log out and back in once so GNOME loads the new sidecar automatically."
 else
-    echo "Could not update GNOME's extension setting. After logging back in, run:"
+    echo "GNOME has not enabled the sidecar yet. Without it the middle button"
+    echo "stays native. After logging back in, run:"
     echo "  gnome-extensions enable $extension_uuid"
+    echo "  gnome-extensions info $extension_uuid   # expect State: ACTIVE"
 fi

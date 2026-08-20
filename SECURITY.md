@@ -8,9 +8,12 @@ the kernel evdev/uinput boundary, with the permissions narrowed to the task.
 
 - The long-running daemon is **not root**. It runs as the dedicated,
   non-login `bazzite-hyperscroll` system account with no capabilities.
-- A targeted udev rule adds a read-only POSIX ACL to Razer pointer
-  interfaces (USB vendor `1532`) and to any pointer interface named
-  `Viper V3 Pro` on any transport, plus a read/write ACL to `/dev/uinput`.
+- A targeted udev rule adds a POSIX ACL to Razer pointer interfaces (USB
+  vendor `1532`) and to any pointer interface named `Viper V3 Pro` on any
+  transport, plus one to `/dev/uinput`. The pointer ACL is read/write
+  because the kernel's evdev interface is opened `O_RDWR`; write access to
+  an event node permits LED/force-feedback writes on that mouse, not reading
+  any other device.
   Interfaces udev marks as keyboards (`ID_INPUT_KEYBOARD`) are excluded, so
   the mouse's connection mode can change without the feature breaking and
   without widening the rule to keyboards.
@@ -25,7 +28,7 @@ the kernel evdev/uinput boundary, with the permissions narrowed to the task.
   root, group/world-writable, or unreasonably large.
 
 Access to the selected evdev node reveals that mouse's movement and button
-events. Access to `/dev/uinput` is inherently powerful: code that completely
+events, and permits writes to that one node. Access to `/dev/uinput` is inherently powerful: code that completely
 compromised the service account could create synthetic keyboard or pointer
 devices. The systemd sandbox reduces the surrounding impact with a closed
 device policy, no network, no writable home/system tree, no capabilities,
