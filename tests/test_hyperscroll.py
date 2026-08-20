@@ -38,6 +38,9 @@ class FakeFocus:
     def block_reason(self, scrolling=False):
         return "blocked by a fake" if self.blocked else ""
 
+    def report_state(self):
+        return "clients=0 focus=never offset=never"
+
     def note_native_click(self):
         self.native_notes += 1
 
@@ -522,6 +525,40 @@ class HyperScrollTests(unittest.TestCase):
             focus.focus_stamp_by_client[client],
             time.monotonic() - 0.1)
         self.assertFalse(focus.blocked)
+
+    def test_logind_verdict_survives_a_transient_read_failure(self):
+        """A moment of unreadable logind state must not end a scroll."""
+        hs._UID_ACTIVE_CACHE.clear()
+        self.addCleanup(hs._UID_ACTIVE_CACHE.clear)
+        with mock.patch.object(hs, "_uid_state", return_value="active"):
+            self.assertTrue(hs._uid_is_active(1000))
+        stale = time.monotonic() - hs.UID_ACTIVE_TTL - 0.1
+        hs._UID_ACTIVE_CACHE[1000] = (stale, True)
+        with mock.patch.object(hs, "_uid_state", return_value=""):
+            self.assertTrue(hs._uid_is_active(1000))
+            # The grace period is bounded: staying unreadable ends in
+            # distrust rather than in permanent trust.
+            hs._UID_ACTIVE_CACHE[1000] = (
+                time.monotonic() - hs.UID_ACTIVE_GRACE - 0.1, True)
+            self.assertFalse(hs._uid_is_active(1000))
+        hs._UID_ACTIVE_CACHE[1000] = (stale, True)
+        with mock.patch.object(hs, "_uid_state", return_value="online"):
+            self.assertFalse(hs._uid_is_active(1000))
+
+    def test_unknown_uid_is_trusted_with_nothing(self):
+        hs._UID_ACTIVE_CACHE.clear()
+        self.addCleanup(hs._UID_ACTIVE_CACHE.clear)
+        with mock.patch.object(hs, "_uid_state", return_value=""):
+            self.assertFalse(hs._uid_is_active(4242))
+
+    def test_report_state_distinguishes_a_quiet_sidecar(self):
+        focus = hs.FocusFilter()
+        self.assertIn("clients=0", focus.report_state())
+        self.assertIn("focus=never", focus.report_state())
+        focus.update(object(), "app.zen_browser.zen.desktop|zen")
+        state = focus.report_state()
+        self.assertIn("clients=1", state)
+        self.assertNotIn("focus=never", state)
 
     def test_blacklist_block_reason_names_the_match(self):
         hs.BLACKLIST = ["freecad"]

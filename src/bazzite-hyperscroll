@@ -306,6 +306,11 @@ def _peer_uid(sock):
         return None
 
 
+_UID_ACTIVE_CACHE = {}     # uid -> (checked at, active?)
+UID_ACTIVE_TTL = 0.5      # seconds a logind verdict is reused
+UID_ACTIVE_GRACE = 3.0    # seconds an unreadable state keeps it
+
+
 def _uid_state(uid):
     """logind's STATE for a uid ("active", "online", ...), or "".
 
@@ -328,8 +333,28 @@ def _uid_is_active(uid):
 
     Focus and cursor motion come only from the session actually being used,
     never from another user's backgrounded session or a service account.
+
+    Answered from a short-lived cache, because this is consulted for every
+    line the sidecar sends - 60 a second while scrolling - and because a
+    single unreadable moment must not read as "the user walked away" and
+    cancel a scroll in progress. Only a successful read changes the verdict.
     """
-    return _uid_state(uid) == "active"
+    now = time.monotonic()
+    cached = _UID_ACTIVE_CACHE.get(uid)
+    if cached is not None and now - cached[0] < UID_ACTIVE_TTL:
+        return cached[1]
+    state = _uid_state(uid)
+    if not state:
+        # Unreadable. Reuse the last successful verdict for a bounded grace
+        # period - without extending it, so a file that stays unreadable ends
+        # up distrusted rather than trusted forever.
+        if cached is not None and now - cached[0] < UID_ACTIVE_GRACE:
+            return cached[1]
+        _UID_ACTIVE_CACHE.pop(uid, None)
+        return False
+    active = state == "active"
+    _UID_ACTIVE_CACHE[uid] = (now, active)
+    return active
 
 
 def sd_notify(message):
@@ -380,16 +405,25 @@ class FocusFilter:
         self.focus_stamp_by_client = {}
         self.offset_by_client = {}
         self.last_native_log = -NATIVE_LOG_INTERVAL
+        # Purely for diagnostics: which side of the socket went quiet is not
+        # something the block reason alone can distinguish.
+        self.last_focus_at = 0.0
+        self.last_offset_at = 0.0
+        self.last_removed_at = 0.0
+        self.rejected_reports = 0
 
     def update(self, client, wclass):
         # Bounded and stripped of control characters: this string comes
         # off a socket and ends up in the journal.
         clean = "".join(c for c in wclass if c.isprintable())[:MAX_FOCUS_LEN]
         self.by_client[client] = clean
-        self.focus_stamp_by_client[client] = time.monotonic()
+        self.last_focus_at = self.focus_stamp_by_client[client] = \
+            time.monotonic()
         log.debug("focus: %r (blocked=%s)", clean, self.blocked)
 
     def remove(self, client):
+        if client in self.by_client:
+            self.last_removed_at = time.monotonic()
         self.by_client.pop(client, None)
         self.focus_stamp_by_client.pop(client, None)
         self.offset_by_client.pop(client, None)
@@ -405,6 +439,7 @@ class FocusFilter:
         dx = _clamp(float(dx))
         dy = _clamp(float(dy))
         now = time.monotonic()
+        self.last_offset_at = now
         self.offset_by_client[client] = (now, dx, dy)
         if client in self.focus_stamp_by_client:
             self.focus_stamp_by_client[client] = now
@@ -461,6 +496,25 @@ class FocusFilter:
     @property
     def blocked(self):
         return bool(self.block_reason())
+
+    def report_state(self):
+        """A one-line account of what the sidecar has been sending.
+
+        Read it as: how many helpers are reporting, and how long ago each
+        kind of message last arrived. "clients=0" means the socket went away
+        or its reports were rejected; fresh offsets with stale focus means
+        the sidecar is alive but its heartbeat is being starved.
+        """
+        now = time.monotonic()
+
+        def ago(stamp):
+            return f"{now - stamp:.1f}s" if stamp else "never"
+
+        return (f"clients={len(self.by_client)} "
+                f"focus={ago(self.last_focus_at)} "
+                f"offset={ago(self.last_offset_at)} "
+                f"dropped={ago(self.last_removed_at)} "
+                f"rejected={self.rejected_reports}")
 
     def note_native_click(self):
         """Log, at most occasionally, why a middle click was left native.
@@ -555,8 +609,12 @@ class Notifier:
                     if _uid_is_active(uid):
                         self.focus.update(client, text[len("focus "):])
                     else:
+                        self.focus.rejected_reports += 1
                         self.focus.remove(client)
-                elif text.startswith("offset ") and _uid_is_active(uid):
+                elif text.startswith("offset "):
+                    if not _uid_is_active(uid):
+                        self.focus.rejected_reports += 1
+                        continue
                     parts = text.split()
                     if len(parts) == 3:
                         try:
@@ -793,7 +851,7 @@ def tick(st, dt, focus):
         # took focus mid-scroll, or the sidecar went away) so it can't keep
         # scrolling under an app that owns the middle button itself.
         if st.scrolling:
-            log.info("scroll stopped: %s", reason)
+            log.info("scroll stopped: %s [%s]", reason, focus.report_state())
         if st.scrolling or st.pending:
             st.reset()
         return
