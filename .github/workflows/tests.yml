@@ -22,5 +22,7 @@ jobs:
           for script in install.sh uninstall.sh src/hyperscrollctl; do
             bash -n "$script"
           done
+      - name: Extension syntax
+        run: node --check 'gnome-extension/bazzite-hyperscroll@local/extension.js'
       - name: Extension metadata is valid JSON
         run: python -c "import json;json.load(open('gnome-extension/bazzite-hyperscroll@local/metadata.json'))"

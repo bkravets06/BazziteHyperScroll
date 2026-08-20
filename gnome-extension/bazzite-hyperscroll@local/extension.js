@@ -356,6 +356,18 @@ export default class BazziteHyperScrollExtension extends Extension {
 
             this._client = null;
             this._connection = connection;
+            // Gio.SocketClient's timeout is not a connect timeout: it arms an
+            // inactivity timeout on the socket it creates, and every later
+            // operation inherits it. This connection is idle by design - the
+            // daemon speaks only when the scroll state changes - so the
+            // pending read would fail with TIMED_OUT every two seconds and
+            // take the connection, and any scroll in progress, with it.
+            try {
+                connection.get_socket()?.set_timeout(0);
+            } catch {
+                // Older Gio, or a connection without an exposed socket: the
+                // reconnect path already handles a dropped connection.
+            }
             this._output = connection.get_output_stream();
             this._input = new Gio.DataInputStream({
                 base_stream: connection.get_input_stream(),

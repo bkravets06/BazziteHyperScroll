@@ -105,9 +105,12 @@ class HyperScrollTests(unittest.TestCase):
         cad = object()
         focus.update(cad, "com.bambulab.BambuStudio.desktop|bambu-studio")
         self.assertTrue(focus.blocked)
-        focus.remove(cad)
+        focus.remove(cad)          # a blacklisted app stops counting at once
         self.assertFalse(focus.blocked)
-        focus.remove(zen)
+        focus.remove(zen)          # an eligible app is given its full TTL
+        self.assertFalse(focus.blocked)
+        focus.focus_stamp_by_client[zen] = (
+            time.monotonic() - hs.FOCUS_TTL - 0.1)
         self.assertTrue(focus.blocked)
 
     def test_allowlist_is_optional_and_case_insensitive(self):
@@ -550,6 +553,51 @@ class HyperScrollTests(unittest.TestCase):
         self.addCleanup(hs._UID_ACTIVE_CACHE.clear)
         with mock.patch.object(hs, "_uid_state", return_value=""):
             self.assertFalse(hs._uid_is_active(4242))
+
+    def test_a_reconnecting_sidecar_does_not_end_a_scroll(self):
+        """A dropped socket that comes straight back must be invisible."""
+        focus = hs.FocusFilter()
+        first = object()
+        focus.update(first, "app.zen_browser.zen.desktop|zen")
+        focus.remove(first)                       # the socket dropped
+        self.assertFalse(focus.blocked)           # still inside FOCUS_TTL
+        second = object()
+        focus.update(second, "app.zen_browser.zen.desktop|zen")
+        self.assertFalse(focus.blocked)
+        # The lingering entry is dropped once it can no longer matter, so
+        # repeated reconnects cannot pile up.
+        focus.focus_stamp_by_client[first] = (
+            time.monotonic() - hs.FOCUS_TTL - 0.1)
+        focus.update(second, "app.zen_browser.zen.desktop|zen")
+        self.assertEqual(list(focus.by_client), [second])
+
+    def test_a_disconnected_blacklisted_app_stops_blocking_at_once(self):
+        """The grace keeps scrolling alive; it must not keep it disabled."""
+        hs.BLACKLIST = ["bambu-studio"]
+        focus = hs.FocusFilter()
+        client = object()
+        focus.update(client, "com.bambulab.BambuStudio.desktop|bambu-studio")
+        self.assertTrue(focus.blocked)
+        focus.remove(client)
+        self.assertEqual(focus.by_client, {})
+
+    def test_a_sidecar_that_stays_away_still_blocks(self):
+        focus = hs.FocusFilter()
+        client = object()
+        focus.update(client, "app.zen_browser.zen.desktop|zen")
+        focus.focus_stamp_by_client[client] = (
+            time.monotonic() - hs.FOCUS_TTL - 0.1)
+        focus.remove(client)
+        self.assertTrue(focus.blocked)
+        self.assertEqual(focus.by_client, {})
+
+    def test_an_inactive_user_is_revoked_without_grace(self):
+        focus = hs.FocusFilter()
+        client = object()
+        focus.update(client, "app.zen_browser.zen.desktop|zen")
+        focus.revoke(client)
+        self.assertTrue(focus.blocked)
+        self.assertEqual(focus.by_client, {})
 
     def test_report_state_distinguishes_a_quiet_sidecar(self):
         focus = hs.FocusFilter()

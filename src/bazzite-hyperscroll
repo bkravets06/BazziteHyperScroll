@@ -419,14 +419,50 @@ class FocusFilter:
         self.by_client[client] = clean
         self.last_focus_at = self.focus_stamp_by_client[client] = \
             time.monotonic()
+        self._prune()
         log.debug("focus: %r (blocked=%s)", clean, self.blocked)
 
     def remove(self, client):
+        """Forget a disconnected helper, letting its last report age out.
+
+        A sidecar that reconnects within FOCUS_TTL - a Shell restart, a
+        dropped socket - should not end a scroll that is running fine. The
+        report is left to expire on its own clock instead of being cut off,
+        so a brief reconnect is invisible while a session that really went
+        away still blocks within the same three seconds as a stall.
+        """
+        identity = self.by_client.get(client)
+        if identity is not None:
+            self.last_removed_at = time.monotonic()
+        self.offset_by_client.pop(client, None)
+        if identity is not None and self._blocks(identity):
+            # The grace exists to keep a working scroll working. It must
+            # never keep HyperScroll *disabled* for a helper that is gone:
+            # a blacklisted app's last report stops counting immediately.
+            self.by_client.pop(client, None)
+            self.focus_stamp_by_client.pop(client, None)
+        self._prune()
+
+    def revoke(self, client):
+        """Drop a helper's report immediately, with no grace.
+
+        For a helper that is still connected but is no longer entitled to be
+        believed - its user is not the one at the screen any more.
+        """
         if client in self.by_client:
             self.last_removed_at = time.monotonic()
         self.by_client.pop(client, None)
         self.focus_stamp_by_client.pop(client, None)
         self.offset_by_client.pop(client, None)
+
+    def _prune(self):
+        """Discard reports too old to matter, so reconnects can't pile up."""
+        cutoff = time.monotonic() - FOCUS_TTL
+        for client in [c for c, stamp in self.focus_stamp_by_client.items()
+                       if stamp <= cutoff]:
+            self.by_client.pop(client, None)
+            self.focus_stamp_by_client.pop(client, None)
+            self.offset_by_client.pop(client, None)
 
     def update_offset(self, client, dx, dy):
         """Record a GNOME-reported cursor offset in real screen pixels.
@@ -457,6 +493,21 @@ class FocusFilter:
             return None
         return dx, dy
 
+    def _blocker(self, identity, scrolling=False):
+        """The blocklist entry this identity matches, or None."""
+        blockers = list(BLACKLIST)
+        if not DESKTOP_SCROLL and not scrolling:
+            blockers += DESKTOP_SHELLS
+        lowered = identity.lower()
+        return next((b for b in blockers if b in lowered), None)
+
+    def _blocks(self, identity, scrolling=False):
+        """True if this identity alone would keep the middle button native."""
+        if self._blocker(identity, scrolling) is not None:
+            return True
+        return bool(ALLOWLIST) and not scrolling and not any(
+            allowed in identity.lower() for allowed in ALLOWLIST)
+
     def block_reason(self, scrolling=False):
         """Why the middle button is native right now, or "" if it is ours.
 
@@ -478,12 +529,8 @@ class FocusFilter:
                         "the GNOME extension is not loaded or not enabled, or "
                         "this is not a GNOME session")
             return ""
-        blockers = list(BLACKLIST)
-        if not DESKTOP_SCROLL and not scrolling:
-            blockers += DESKTOP_SHELLS
         for wclass in identities:
-            lowered = wclass.lower()
-            hit = next((b for b in blockers if b in lowered), None)
+            hit = self._blocker(wclass, scrolling)
             if hit is not None:
                 where = "BLACKLIST" if hit in BLACKLIST else "DESKTOP_SHELLS"
                 return f"{wclass!r} matches {hit!r} in {where}"
@@ -610,7 +657,7 @@ class Notifier:
                         self.focus.update(client, text[len("focus "):])
                     else:
                         self.focus.rejected_reports += 1
-                        self.focus.remove(client)
+                        self.focus.revoke(client)
                 elif text.startswith("offset "):
                     if not _uid_is_active(uid):
                         self.focus.rejected_reports += 1
