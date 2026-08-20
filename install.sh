@@ -128,6 +128,36 @@ for file in extension.js metadata.json stylesheet.css; do
         "$extension_src/$file" "$extension_dst/$file"
 done
 
+# GNOME refuses to load an extension whose metadata does not list the running
+# Shell version, and it refuses silently as far as this feature is concerned:
+# with no sidecar reporting, the middle button just stays native. Record the
+# version actually running here, so an OS upgrade to an unlisted GNOME only
+# costs a rerun of this installer rather than a mystery.
+shell_version=$(gnome-shell --version 2>/dev/null |
+    sed -n 's/^GNOME Shell \([0-9]\+\).*/\1/p')
+if [[ -n $shell_version ]]; then
+    echo "GNOME Shell $shell_version detected."
+    sudo -u "$target_user" python3 - \
+        "$extension_dst/metadata.json" "$shell_version" <<'PYTHON'
+import json
+import sys
+
+path, version = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as f:
+    data = json.load(f)
+versions = [str(v) for v in data.get("shell-version", [])]
+if version not in versions:
+    data["shell-version"] = sorted([*versions, version],
+                                   key=lambda v: int(v.split(".")[0]))
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+PYTHON
+else
+    echo "Warning: gnome-shell was not found; the sidecar cannot load without" >&2
+    echo "a GNOME session, and autoscroll stays inactive without the sidecar." >&2
+fi
+
 if command -v restorecon >/dev/null; then
     restorecon -F /usr/local/bin/bazzite-hyperscroll \
         /usr/local/bin/hyperscrollctl \

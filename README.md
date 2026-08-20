@@ -104,6 +104,32 @@ grab automatically.
 hyperscrollctl kill
 ```
 
+## When nothing scrolls
+
+Run `hyperscrollctl doctor` first; it answers most of this in one screen.
+
+The usual cause is the GNOME sidecar not being loaded. HyperScroll keeps the
+middle button native whenever no sidecar is reporting a focused window, so a
+sidecar that never loaded looks exactly like a feature that does nothing. The
+journal says so explicitly the first time a middle click is left native:
+
+```bash
+journalctl -u bazzite-hyperscroll.service -b | grep 'left native'
+```
+
+Things worth checking, in order:
+
+1. `gnome-extensions info bazzite-hyperscroll@local` reports `ACTIVE`. If it
+   reports `OUT OF DATE`, the running GNOME is newer than the version
+   recorded in the extension. Rerun `./install.sh` - it stamps the running
+   Shell version into the installed metadata - then log out and back in.
+2. You logged out and back in once after installing. A new extension cannot
+   load into a running Wayland session.
+3. `hyperscrollctl doctor` shows a grabbed mouse. If not, `hyperscrollctl
+   devices` shows what the daemon sees and why each device is or is not used.
+4. The app is not in `BLACKLIST`, and the pointer is over an application
+   window rather than a panel or the overview.
+
 To remove the feature:
 
 ```bash

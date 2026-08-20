@@ -128,6 +128,7 @@ MAX_CLIENTS_PER_UID = 4
 SOCK_LIMIT = 4096          # per-connection read buffer
 MAX_FOCUS_LEN = 256        # characters kept from a focus report
 FOCUS_TTL = 3.0            # fail safe if the sidecar stops heartbeating
+NATIVE_LOG_INTERVAL = 10.0 # seconds between 'left native' warnings
 WRITE_SKIP_BYTES = 4096    # skip updates for a client this far behind
 WRITE_DROP_BYTES = 65536   # disconnect a client this far behind
 
@@ -375,6 +376,7 @@ class FocusFilter:
         self.by_client = {}
         self.focus_stamp_by_client = {}
         self.offset_by_client = {}
+        self.last_native_log = -NATIVE_LOG_INTERVAL
 
     def update(self, client, wclass):
         # Bounded and stripped of control characters: this string comes
@@ -408,26 +410,50 @@ class FocusFilter:
             return None
         return dx, dy
 
-    @property
-    def blocked(self):
+    def block_reason(self):
+        """Why the middle button is native right now, or "" if it is ours."""
         now = time.monotonic()
         identities = [
             identity for client, identity in self.by_client.items()
             if now - self.focus_stamp_by_client.get(client, 0) <= FOCUS_TTL
         ]
-        if REQUIRE_FOCUS_HELPER and not identities:
-            return True
+        if not identities:
+            if REQUIRE_FOCUS_HELPER:
+                return ("no session sidecar is reporting the focused window: "
+                        "the GNOME extension is not loaded or not enabled, or "
+                        "this is not a GNOME session")
+            return ""
         blockers = BLACKLIST if DESKTOP_SCROLL else BLACKLIST + DESKTOP_SHELLS
         for wclass in identities:
-            c = wclass.lower()
-            if any(b in c for b in blockers):
-                return True
-        if ALLOWLIST:
-            return not any(
+            lowered = wclass.lower()
+            hit = next((b for b in blockers if b in lowered), None)
+            if hit is not None:
+                where = "BLACKLIST" if hit in BLACKLIST else "DESKTOP_SHELLS"
+                return f"{wclass!r} matches {hit!r} in {where}"
+        if ALLOWLIST and not any(
                 any(allowed in identity.lower() for allowed in ALLOWLIST)
-                for identity in identities
-            )
-        return False
+                for identity in identities):
+            return f"{identities[0]!r} is not in ALLOWLIST"
+        return ""
+
+    @property
+    def blocked(self):
+        return bool(self.block_reason())
+
+    def note_native_click(self):
+        """Log, at most occasionally, why a middle click was left native.
+
+        Without this the most common misconfiguration - a sidecar that never
+        loaded - looks exactly like a feature that does nothing at all.
+        """
+        reason = self.block_reason()
+        if not reason:
+            return
+        now = time.monotonic()
+        if now - self.last_native_log < NATIVE_LOG_INTERVAL:
+            return
+        self.last_native_log = now
+        log.warning("middle click left native: %s", reason)
 
 
 class Notifier:
@@ -897,6 +923,7 @@ def _toggle_key(ev, st, ui, focus):
     if code == e.BTN_MIDDLE:
         if ev.value == 1:
             if focus.blocked:
+                focus.note_native_click()
                 st.passthrough = True
                 ui.write(e.EV_KEY, e.BTN_MIDDLE, 1)
                 ui.syn()

@@ -33,6 +33,10 @@ class FakeUI:
 class FakeFocus:
     def __init__(self, blocked=False):
         self.blocked = blocked
+        self.native_notes = 0
+
+    def note_native_click(self):
+        self.native_notes += 1
 
 
 class FakeInfo:
@@ -458,6 +462,29 @@ class HyperScrollTests(unittest.TestCase):
         selected, reason = hs.decide_device(
             FakeDevice("Keychron Keychron K13 Max Mouse"), "/dev/input/event3")
         self.assertFalse(selected, reason)
+
+    def test_missing_sidecar_is_reported_not_just_silently_native(self):
+        """The commonest failure must say so in the journal."""
+        hs.REQUIRE_FOCUS_HELPER = True
+        focus = hs.FocusFilter()
+        self.assertTrue(focus.blocked)
+        self.assertIn("sidecar", focus.block_reason())
+        with self.assertLogs(hs.log, level="WARNING") as captured:
+            focus.note_native_click()
+        self.assertIn("middle click left native", captured.output[0])
+        # Rate limited: a run of clicks must not flood the journal.
+        focus.note_native_click()
+        focus.update(object(), "org.gnome.Nautilus")
+        self.assertFalse(focus.blocked)
+        self.assertEqual(focus.block_reason(), "")
+
+    def test_blacklist_block_reason_names_the_match(self):
+        hs.BLACKLIST = ["freecad"]
+        focus = hs.FocusFilter()
+        focus.update(object(), "org.freecad.FreeCAD")
+        reason = focus.block_reason()
+        self.assertIn("freecad", reason)
+        self.assertIn("BLACKLIST", reason)
 
     def test_keyboard_is_rejected_even_if_selected(self):
         hs.ONLY_DEVICES = ["Razer Viper V3 Pro"]
