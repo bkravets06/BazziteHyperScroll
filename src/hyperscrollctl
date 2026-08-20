@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+service=bazzite-hyperscroll.service
+extension=bazzite-hyperscroll@local
+
+case "${1:-status}" in
+    status)
+        systemctl --no-pager --full status "$service"
+        ;;
+    logs)
+        journalctl -u "$service" -b --no-pager
+        ;;
+    follow)
+        journalctl -u "$service" -f
+        ;;
+    stop|kill)
+        sudo systemctl stop "$service"
+        ;;
+    start)
+        sudo systemctl start "$service"
+        ;;
+    restart)
+        sudo systemctl restart "$service"
+        ;;
+    devices)
+        sudo /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll --list-devices
+        ;;
+    doctor)
+        # One command whose output describes every part of the feature, so a
+        # report can be pasted somewhere without a round of questions.
+        echo "== service =="
+        echo "enabled: $(systemctl is-enabled "$service" 2>&1)"
+        echo "active:  $(systemctl is-active "$service" 2>&1)"
+        if [[ -s /run/bazzite-hyperscroll/grabbed ]]; then
+            echo "grabbed: $(cat /run/bazzite-hyperscroll/grabbed)"
+        else
+            echo "grabbed: no mouse is currently mirrored"
+        fi
+        if [[ -S /run/bazzite-hyperscroll/state.sock ]]; then
+            echo "socket:  $(stat -c '%A %U:%G' \
+                /run/bazzite-hyperscroll/state.sock)"
+        else
+            echo "socket:  missing (the daemon is not running)"
+        fi
+        echo
+        echo "== selected mouse =="
+        sudo /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll \
+            --list-devices 2>/dev/null | grep -B2 '^    used:' || \
+            echo "no device is selected by ONLY_DEVICES right now"
+        echo
+        echo "== session =="
+        echo "desktop: ${XDG_CURRENT_DESKTOP:-unknown} (${XDG_SESSION_TYPE:-unknown})"
+        if command -v gnome-shell >/dev/null; then
+            echo "shell:   $(gnome-shell --version 2>&1)"
+        fi
+        if command -v gnome-extensions >/dev/null; then
+            echo "sidecar: $(gnome-extensions info "$extension" 2>&1 |
+                sed -n 's/^ *State: *//p')"
+        else
+            echo "sidecar: gnome-extensions is unavailable (not a GNOME session)"
+        fi
+        echo
+        echo "== configuration =="
+        if [[ -e /etc/bazzite-hyperscroll.conf ]]; then
+            grep -v '^[[:space:]]*\(#\|$\)' \
+                /etc/bazzite-hyperscroll.conf || echo "(all defaults)"
+        else
+            echo "/etc/bazzite-hyperscroll.conf is missing; defaults are in use"
+        fi
+        echo
+        echo "== recent log =="
+        journalctl -u "$service" -b -p warning -n 20 --no-pager 2>&1 ||
+            journalctl -u "$service" -n 20 --no-pager
+        ;;
+    edit)
+        sudoedit /etc/bazzite-hyperscroll.conf
+        sudo systemctl restart "$service"
+        ;;
+    *)
+        echo "Usage: hyperscrollctl {status|logs|follow|stop|kill|start|restart|devices|doctor|edit}" >&2
+        exit 2
+        ;;
+esac

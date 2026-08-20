@@ -38,10 +38,12 @@ fi
 
 # Remove only the named ACL entries installed for this service. Existing
 # Sunshine/input/uaccess permissions and device ownership are left intact.
-mouse_link=/dev/input/by-id/usb-Razer_Razer_Viper_V3_Pro-event-mouse
-if [[ -e $mouse_link ]]; then
-    setfacl -x "g:$service_account" "$mouse_link" 2>/dev/null || true
-fi
+for node in /dev/input/event*; do
+    [[ -e $node ]] || continue
+    if getfacl -c -p "$node" 2>/dev/null | grep -q "^group:$service_account:"; then
+        setfacl -x "g:$service_account" "$node" 2>/dev/null || true
+    fi
+done
 if [[ -e /dev/uinput ]]; then
     setfacl -x "g:$service_account" /dev/uinput 2>/dev/null || true
 fi

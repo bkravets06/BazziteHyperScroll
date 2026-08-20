@@ -433,6 +433,32 @@ class HyperScrollTests(unittest.TestCase):
             FakeDevice("Keychron Keychron K13 Max Mouse"), "/dev/input/event3")
         self.assertFalse(selected, reason)
 
+    def test_shipped_config_selects_the_mouse_in_every_mode(self):
+        """The installed config and the daemon must agree on the mouse.
+
+        The device spec is a name fragment on purpose: the same mouse
+        enumerates under different by-id paths and product IDs over its
+        dongle, its cable, and Bluetooth.
+        """
+        config = pathlib.Path(__file__).parents[1] / "config" \
+            / "bazzite-hyperscroll.conf"
+        specs = []
+        for line in config.read_text().splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line.startswith("ONLY_DEVICES") and "=" in line:
+                specs = hs.parse_devices(line.split("=", 1)[1])
+        self.assertTrue(specs, "the shipped config selects no device")
+        hs.ONLY_DEVICES = specs
+        for name in ("Razer Razer Viper V3 Pro",
+                     "Razer Viper V3 Pro",
+                     "Viper V3 Pro Mouse"):
+            selected, reason = hs.decide_device(
+                FakeDevice(name), "/dev/input/event7")
+            self.assertTrue(selected, f"{name}: {reason}")
+        selected, reason = hs.decide_device(
+            FakeDevice("Keychron Keychron K13 Max Mouse"), "/dev/input/event3")
+        self.assertFalse(selected, reason)
+
     def test_keyboard_is_rejected_even_if_selected(self):
         hs.ONLY_DEVICES = ["Razer Viper V3 Pro"]
         selected, reason = hs.decide_device(

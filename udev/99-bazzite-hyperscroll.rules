@@ -1,0 +1,16 @@
+# Grant the dedicated, non-login service account read access to the Razer
+# Viper V3 Pro's pointer interfaces only. Keyboard-class interfaces are
+# excluded (ID_INPUT_KEYBOARD), so this service can never read typing.
+# POSIX ACLs preserve Bazzite's existing owner/group and the desktop user's
+# uaccess ACL.
+#
+# The mouse enumerates differently in each connection mode (2.4 GHz dongle,
+# USB cable, Bluetooth), so both a USB-vendor match and a transport-agnostic
+# name match are used; the daemon's own ONLY_DEVICES list is what finally
+# decides which node it grabs.
+ACTION=="add|change", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_MOUSE}=="1", ENV{ID_INPUT_KEYBOARD}!="1", ENV{ID_VENDOR_ID}=="1532", RUN+="/usr/bin/setfacl -m g:bazzite-hyperscroll:r /dev/input/%k"
+ACTION=="add|change", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_MOUSE}=="1", ENV{ID_INPUT_KEYBOARD}!="1", ATTRS{name}=="*Viper V3 Pro*", RUN+="/usr/bin/setfacl -m g:bazzite-hyperscroll:r /dev/input/%k"
+
+# Keep the group selected by Bazzite's existing Sunshine rule and add only
+# this service account's group ACL.
+ACTION=="add|change", SUBSYSTEM=="misc", KERNEL=="uinput", OPTIONS+="static_node=uinput", RUN+="/usr/bin/setfacl -m g:bazzite-hyperscroll:rw /dev/%k"

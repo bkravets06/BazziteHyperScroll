@@ -21,13 +21,27 @@ sidecar loads automatically with the desktop session.
 - If the GNOME sidecar is missing or stale, HyperScroll fails safe: it
   preserves native middle-button behavior or pauses scrolling.
 
+## Requirements
+
+- A GNOME session (Wayland or X11). The sidecar is a GNOME Shell extension,
+  and by default HyperScroll keeps the middle button native whenever no
+  sidecar is reporting, so it stays inactive on other desktops.
+- `python3-evdev`. On Bazzite's immutable base, install it once with
+  `rpm-ostree install python3-evdev` and reboot if the installer says it is
+  missing.
+
 ## Install
 
-From this directory, run:
+Clone the repository and run the installer from its top level:
 
 ```bash
+git clone https://github.com/bkravets06/bazzitehyperscroll.git
+cd bazzitehyperscroll
 ./install.sh
 ```
+
+The installer prints which mouse it selected before it changes anything, and
+refuses to continue if none is connected or if the device ACL did not apply.
 
 The installer requests sudo once, installs only persistent Bazzite-friendly
 paths under `/usr/local` and `/etc`, enables the system service, and installs
@@ -55,10 +69,16 @@ stops the active scroll.
 ## Status, tuning, and recovery
 
 ```bash
+hyperscrollctl doctor
 hyperscrollctl status
 hyperscrollctl logs
 hyperscrollctl edit
 ```
+
+`hyperscrollctl doctor` prints the whole picture in one go: whether the
+service is running, which mouse it grabbed, whether the GNOME sidecar is
+loaded, the active configuration, and recent warnings. It is the first thing
+to run when something does not behave.
 
 `hyperscrollctl edit` opens `/etc/bazzite-hyperscroll.conf` and restarts the
 service after editing. The most useful settings are:
@@ -71,6 +91,10 @@ service after editing. The most useful settings are:
 - `HORIZONTAL_SCROLL`: opt-in horizontal panning.
 - `BLACKLIST`: comma-separated GNOME app-ID or WM-class fragments that keep
   native middle-button behavior.
+- `ONLY_DEVICES`: which mouse is used. It ships as the name fragment
+  `Viper V3 Pro`, which matches that mouse over its 2.4 GHz dongle, its
+  cable, and Bluetooth alike. `hyperscrollctl devices` lists every device
+  with its identifier and what HyperScroll does with it.
 
 If input ever behaves unexpectedly, the keyboard command below immediately
 stops the daemon. Closing the process releases the kernel's exclusive mouse

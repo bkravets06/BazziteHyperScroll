@@ -30,13 +30,77 @@ command -v setfacl >/dev/null || {
     exit 1
 }
 python3 -c 'import evdev' 2>/dev/null || {
-    echo "python3-evdev is required (it is normally preinstalled on Bazzite)." >&2
+    echo "python3-evdev is required and is not installed." >&2
+    echo "On Bazzite (rpm-ostree), install it and reboot, then rerun this:" >&2
+    echo "    rpm-ostree install python3-evdev && systemctl reboot" >&2
     exit 1
 }
-[[ -e /dev/input/by-id/usb-Razer_Razer_Viper_V3_Pro-event-mouse ]] || {
-    echo "The Razer Viper V3 Pro pointer interface is not connected." >&2
-    exit 1
+
+# Which mouse the daemon will grab, decided by the same code the daemon uses,
+# so the installer never disagrees with it. The config being installed is the
+# source of truth: an existing /etc config wins, exactly as at runtime.
+config_source="$project_dir/config/bazzite-hyperscroll.conf"
+[[ -e /etc/bazzite-hyperscroll.conf ]] && \
+    config_source=/etc/bazzite-hyperscroll.conf
+
+selected_mice() {
+    python3 - "$project_dir/src/bazzite-hyperscroll" "$config_source" <<'PYTHON'
+import importlib.machinery
+import importlib.util
+import sys
+
+source, config = sys.argv[1], sys.argv[2]
+loader = importlib.machinery.SourceFileLoader("bazzite_hyperscroll", source)
+hs = importlib.util.module_from_spec(importlib.util.spec_from_loader(
+    loader.name, loader))
+loader.exec_module(hs)
+hs.log.disabled = True
+for line in open(config, encoding="utf-8", errors="replace"):
+    line = line.split("#", 1)[0].strip()
+    if "=" not in line:
+        continue
+    key, value = (part.strip() for part in line.split("=", 1))
+    if key in hs.DEVICE_KEYS:
+        setattr(hs, key, hs.parse_devices(value))
+for path in sorted(hs.list_devices()):
+    try:
+        dev = hs.InputDevice(path)
+    except OSError:
+        continue
+    try:
+        if hs.decide_device(dev, path)[0]:
+            print(f"{path}\t{(dev.name or '').strip()}")
+    finally:
+        dev.close()
+PYTHON
 }
+
+mapfile -t selected < <(selected_mice)
+if [[ ${#selected[@]} -eq 0 ]]; then
+    echo "No mouse matching ONLY_DEVICES in $config_source is connected." >&2
+    echo "Connect the mouse, or edit ONLY_DEVICES after listing devices:" >&2
+    echo "    sudo python3 $project_dir/src/bazzite-hyperscroll --list-devices" >&2
+    exit 1
+fi
+echo "HyperScroll will use:"
+printf '  %s\n' "${selected[@]}"
+
+# The sidecar is a GNOME Shell extension, and REQUIRE_FOCUS_HELPER keeps the
+# middle button native while no sidecar reports a focused window. Say so now
+# rather than leaving a silently inactive install behind.
+session_id=$(loginctl show-user "$target_user" --value -p Display 2>/dev/null || true)
+session_desktop=""
+if [[ -n $session_id ]]; then
+    session_desktop=$(loginctl show-session "$session_id" --value -p Desktop \
+        2>/dev/null || true)
+fi
+if [[ -n $session_desktop && ${session_desktop,,} != *gnome* ]]; then
+    echo
+    echo "Warning: this session is '$session_desktop', not GNOME. The sidecar" >&2
+    echo "extension only loads under GNOME Shell, so autoscroll will stay" >&2
+    echo "inactive until a GNOME session is used." >&2
+    echo
+fi
 
 getent group "$service_account" >/dev/null || groupadd --system "$service_account"
 id "$service_account" >/dev/null 2>&1 || useradd --system \
@@ -79,11 +143,15 @@ udevadm trigger --action=change --subsystem-match=input
 udevadm trigger --action=change --subsystem-match=misc --sysname-match=uinput
 udevadm settle
 
-if ! sudo -u "$service_account" test -r \
-        /dev/input/by-id/usb-Razer_Razer_Viper_V3_Pro-event-mouse; then
-    echo "The targeted mouse ACL was not applied; refusing to start." >&2
-    exit 1
-fi
+for entry in "${selected[@]}"; do
+    node=${entry%%$'\t'*}
+    if ! sudo -u "$service_account" test -r "$node"; then
+        echo "The ACL for $node was not applied; refusing to start." >&2
+        echo "Check /etc/udev/rules.d/99-bazzite-hyperscroll.rules against" >&2
+        echo "    udevadm info --query=property --name=$node" >&2
+        exit 1
+    fi
+done
 if ! sudo -u "$service_account" test -w /dev/uinput; then
     echo "The targeted uinput ACL was not applied; refusing to start." >&2
     exit 1

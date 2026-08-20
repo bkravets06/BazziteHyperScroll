@@ -8,11 +8,17 @@ the kernel evdev/uinput boundary, with the permissions narrowed to the task.
 
 - The long-running daemon is **not root**. It runs as the dedicated,
   non-login `bazzite-hyperscroll` system account with no capabilities.
-- A targeted udev rule adds a read-only POSIX ACL only to the Razer Viper V3
-  Pro USB pointer interface (`1532:00c1`, interface `00`) and a read/write ACL
-  to `/dev/uinput`.
-- It does not grant access to the Razer keyboard/control interface, other
-  mice, keyboards, or the broad `input` group.
+- A targeted udev rule adds a read-only POSIX ACL to Razer pointer
+  interfaces (USB vendor `1532`) and to any pointer interface named
+  `Viper V3 Pro` on any transport, plus a read/write ACL to `/dev/uinput`.
+  Interfaces udev marks as keyboards (`ID_INPUT_KEYBOARD`) are excluded, so
+  the mouse's connection mode can change without the feature breaking and
+  without widening the rule to keyboards.
+- It does not grant access to the Razer keyboard/control interface,
+  keyboards, or the broad `input` group.
+- Which node the daemon actually opens is decided separately by the
+  root-owned `ONLY_DEVICES` list, and keyboard-class devices are refused
+  before that list is consulted, so no config can point it at typing.
 - ACLs are added without replacing Bazzite's existing device group or its
   Sunshine/uaccess permissions.
 - The root-owned configuration is ignored if it is a symlink, not owned by
