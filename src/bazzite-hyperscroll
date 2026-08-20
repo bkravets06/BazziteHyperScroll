@@ -395,10 +395,19 @@ class FocusFilter:
         self.offset_by_client.pop(client, None)
 
     def update_offset(self, client, dx, dy):
-        """Record a GNOME-reported cursor offset in real screen pixels."""
+        """Record a GNOME-reported cursor offset in real screen pixels.
+
+        This also counts as a heartbeat. The sidecar sends offsets at 60 Hz
+        while scrolling and a focus line only when it changes, so treating
+        one as liveness stops a busy sidecar from ever looking stale and
+        cancelling the scroll it is actively driving.
+        """
         dx = _clamp(float(dx))
         dy = _clamp(float(dy))
-        self.offset_by_client[client] = (time.monotonic(), dx, dy)
+        now = time.monotonic()
+        self.offset_by_client[client] = (now, dx, dy)
+        if client in self.focus_stamp_by_client:
+            self.focus_stamp_by_client[client] = now
 
     def clear_offsets(self):
         self.offset_by_client.clear()
@@ -413,8 +422,16 @@ class FocusFilter:
             return None
         return dx, dy
 
-    def block_reason(self):
-        """Why the middle button is native right now, or "" if it is ours."""
+    def block_reason(self, scrolling=False):
+        """Why the middle button is native right now, or "" if it is ours.
+
+        ``scrolling`` asks about an autoscroll already in progress, which is
+        judged more permissively than starting one. Windows keeps scrolling
+        while the pointer wanders over the taskbar or another window, and the
+        eligibility rules exist to protect the *click*, not to cut a session
+        short the moment the pointer leaves the app. A blacklisted app taking
+        focus still stops it, and so does losing the sidecar.
+        """
         now = time.monotonic()
         identities = [
             identity for client, identity in self.by_client.items()
@@ -426,14 +443,16 @@ class FocusFilter:
                         "the GNOME extension is not loaded or not enabled, or "
                         "this is not a GNOME session")
             return ""
-        blockers = BLACKLIST if DESKTOP_SCROLL else BLACKLIST + DESKTOP_SHELLS
+        blockers = list(BLACKLIST)
+        if not DESKTOP_SCROLL and not scrolling:
+            blockers += DESKTOP_SHELLS
         for wclass in identities:
             lowered = wclass.lower()
             hit = next((b for b in blockers if b in lowered), None)
             if hit is not None:
                 where = "BLACKLIST" if hit in BLACKLIST else "DESKTOP_SHELLS"
                 return f"{wclass!r} matches {hit!r} in {where}"
-        if ALLOWLIST and not any(
+        if ALLOWLIST and not scrolling and not any(
                 any(allowed in identity.lower() for allowed in ALLOWLIST)
                 for identity in identities):
             return f"{identities[0]!r} is not in ALLOWLIST"
@@ -768,10 +787,13 @@ async def ticker(states, notifier, focus):
 
 
 def tick(st, dt, focus):
-    if focus.blocked:
-        # A blacklisted app is focused. Never scroll, and stop anything
-        # already running (focus changed mid-scroll) so it can't keep
-        # scrolling under the blacklisted app.
+    reason = focus.block_reason(scrolling=st.scrolling)
+    if reason:
+        # Never scroll, and stop anything already running (a blacklisted app
+        # took focus mid-scroll, or the sidecar went away) so it can't keep
+        # scrolling under an app that owns the middle button itself.
+        if st.scrolling:
+            log.info("scroll stopped: %s", reason)
         if st.scrolling or st.pending:
             st.reset()
         return

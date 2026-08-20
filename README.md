@@ -63,8 +63,10 @@ blacklist receive native middle-button input unchanged.
 
 The Linux input stack delivers injected wheel events to the app under the
 current pointer, not permanently to the window where scrolling began. Keep
-the pointer over the target app. Entering GNOME Shell UI or a blacklisted app
-stops the active scroll.
+the pointer over the target app: moving it onto a panel or the overview
+simply means nothing scrolls there, and scrolling resumes when it comes
+back. A blacklisted app taking focus does end the session, as does losing
+the GNOME sidecar; the journal records which one it was.
 
 ## Status, tuning, and recovery
 

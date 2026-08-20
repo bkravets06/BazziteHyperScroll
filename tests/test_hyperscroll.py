@@ -35,6 +35,9 @@ class FakeFocus:
         self.blocked = blocked
         self.native_notes = 0
 
+    def block_reason(self, scrolling=False):
+        return "blocked by a fake" if self.blocked else ""
+
     def note_native_click(self):
         self.native_notes += 1
 
@@ -477,6 +480,48 @@ class HyperScrollTests(unittest.TestCase):
         focus.update(object(), "org.gnome.Nautilus")
         self.assertFalse(focus.blocked)
         self.assertEqual(focus.block_reason(), "")
+
+    def test_running_scroll_survives_the_pointer_leaving_the_app(self):
+        """Windows keeps scrolling over the taskbar; so does this.
+
+        The Shell's own chrome must still block a middle click that has not
+        started scrolling yet, so the click keeps working on panels.
+        """
+        focus = hs.FocusFilter()
+        focus.update(object(), "org.gnome.shell")
+        self.assertTrue(focus.blocked)
+        self.assertEqual(focus.block_reason(scrolling=True), "")
+
+        state = hs.State(FakeUI())
+        state.begin_toggle()
+        state.dy = 200.0
+        hs.tick(state, 0.10, focus)
+        self.assertTrue(state.toggled)
+
+    def test_running_scroll_still_stops_for_a_blacklisted_app(self):
+        hs.BLACKLIST = ["freecad"]
+        focus = hs.FocusFilter()
+        focus.update(object(), "org.freecad.FreeCAD")
+        state = hs.State(FakeUI())
+        state.begin_toggle()
+        state.dy = 200.0
+        with self.assertLogs(hs.log, level="INFO") as captured:
+            hs.tick(state, 0.10, focus)
+        self.assertFalse(state.toggled)
+        self.assertIn("scroll stopped", captured.output[0])
+
+    def test_an_offset_report_is_also_a_heartbeat(self):
+        """A sidecar busy driving a scroll must never look stale."""
+        focus = hs.FocusFilter()
+        client = object()
+        focus.update(client, "app.zen_browser.zen.desktop|zen")
+        focus.focus_stamp_by_client[client] = (
+            time.monotonic() - hs.FOCUS_TTL + 0.2)
+        focus.update_offset(client, 0, 120)
+        self.assertGreater(
+            focus.focus_stamp_by_client[client],
+            time.monotonic() - 0.1)
+        self.assertFalse(focus.blocked)
 
     def test_blacklist_block_reason_names_the_match(self):
         hs.BLACKLIST = ["freecad"]
