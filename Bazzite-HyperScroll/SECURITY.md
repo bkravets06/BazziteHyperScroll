@@ -1,0 +1,60 @@
+# Security and failure model
+
+Wayland intentionally does not let ordinary apps globally intercept a
+physical mouse button and inject wheel events. HyperScroll therefore uses
+the kernel evdev/uinput boundary, with the permissions narrowed to the task.
+
+## Privileges
+
+- The long-running daemon is **not root**. It runs as the dedicated,
+  non-login `bazzite-hyperscroll` system account with no capabilities.
+- A targeted udev rule adds a read-only POSIX ACL only to the Razer Viper V3
+  Pro USB pointer interface (`1532:00c1`, interface `00`) and a read/write ACL
+  to `/dev/uinput`.
+- It does not grant access to the Razer keyboard/control interface, other
+  mice, keyboards, or the broad `input` group.
+- ACLs are added without replacing Bazzite's existing device group or its
+  Sunshine/uaccess permissions.
+- The root-owned configuration is ignored if it is a symlink, not owned by
+  root, group/world-writable, or unreasonably large.
+
+Access to the selected evdev node reveals that mouse's movement and button
+events. Access to `/dev/uinput` is inherently powerful: code that completely
+compromised the service account could create synthetic keyboard or pointer
+devices. The systemd sandbox reduces the surrounding impact with a closed
+device policy, no network, no writable home/system tree, no capabilities,
+no realtime scheduling, namespace and syscall restrictions, and memory/task
+limits. This is still a trusted local input component and should be updated
+only from reviewed source.
+
+## GNOME sidecar and local socket
+
+The unprivileged GNOME extension connects to a Unix socket under
+`/run/bazzite-hyperscroll`. The daemon accepts reports only from a user that
+logind considers logged in on a seat and accepts cursor offsets only from
+the active user. Messages are bounded and contain app identity plus offset
+from the anchor, never absolute pointer coordinates. Reports are advisory:
+they can pause/resume eligibility but cannot change the root-owned device
+selection or executable.
+
+## Failure behavior
+
+- The virtual mirror is created before the physical mouse is grabbed.
+- Any setup failure closes the physical device without grabbing it.
+- Unplug, cancellation, read/write failure, and unexpected pump errors all
+  close the physical descriptor, which makes Linux release `EVIOCGRAB`.
+- Forwarded held buttons are released during cleanup when the mirror still
+  accepts writes.
+- `SYN_DROPPED` input is discarded until the next complete report, then held
+  state is reconciled.
+- Transient uinput or competing-grab failures retry automatically.
+- A systemd watchdog restarts a stalled event loop; process termination
+  releases the physical grab before restart.
+- If the GNOME focus/offset helper disappears, autoscroll fails safe rather
+  than using stale focus or raw high-DPI distance.
+
+Emergency stop:
+
+```bash
+hyperscrollctl kill
+```

@@ -1,0 +1,1461 @@
+#!/usr/bin/python3
+"""Bazzite HyperScroll - Windows-style middle-button autoscroll for GNOME.
+
+The default interaction is Windows-browser style: a single middle click
+starts autoscroll, the cursor then moves freely and the page scrolls by its
+distance from that origin, and any mouse click stops it. In this mode the
+middle button is intentionally dedicated to autoscroll in enabled apps.
+
+An optional hold-and-drag mode keeps the pointer anchored, scrolls faster
+with distance, stops on release, and replays a click that never moved beyond
+the dead zone.
+
+Works on Wayland and X11 in any application, because it sits at the kernel
+input layer: it grabs the real mouse and re-emits its events through a
+per-mouse uinput mirror, injecting high-resolution wheel events while a
+middle-drag is active. Each mirror copies its source mouse's name and
+vendor/product IDs, so libinput/KDE keep applying that mouse's own
+pointer-speed and acceleration settings instead of reverting to defaults.
+
+Apps that use middle-drag themselves (CAD, slicers, games) can be
+blacklisted by window identity; while one of them is focused, the middle
+button passes straight through. A GNOME Shell sidecar reports the focused
+window and the cursor's screen-pixel offset over the local state socket.
+
+Which devices count as a mouse is decided automatically, and can be
+overridden per device with EXTRA_DEVICES / IGNORE_DEVICES (see
+--list-devices for the identifiers, and SECURITY.md for what forcing a
+device does and does not allow).
+
+Tunables can be overridden in /etc/bazzite-hyperscroll.conf (KEY = value
+lines) or per run on the command line: bazzite-hyperscroll --help. The config file decides
+which devices this daemon opens, so it is only read when it is owned by
+root and not writable by anyone else.
+"""
+
+import argparse
+import asyncio
+import logging
+import math
+import os
+import re
+import socket
+import struct
+import sys
+import time
+
+from evdev import InputDevice, UInput, _uinput, ecodes as e, list_devices
+
+VERSION = "1.0.0"
+
+log = logging.getLogger("bazzite-hyperscroll")
+
+# ---- Tuning (override in /etc/bazzite-hyperscroll.conf or via CLI) --------
+# Speed curve from Chromium/Edge's autoscroll:
+#   velocity_px_per_sec = SPEED_MULT * |offset_px| ^ SPEED_EXP   (per axis)
+# with a 15 px per-axis dead zone. Chromium uses 0.000008 * d^2.2 in px/ms;
+# SPEED_MULT is that times 1000.
+DEADZONE_PX = 15.0        # per-axis dead zone, as in Chromium
+SPEED_MULT = 0.008        # px/sec multiplier, overall speed
+SPEED_EXP = 2.2           # exponent: slow near the press point, fast far
+MAX_PX_PER_SEC = 30000.0  # safety cap on scroll speed
+PX_PER_NOTCH = 55.0       # how many px one wheel notch scrolls in your apps
+MAX_DRAG_PX = 1200.0      # cap on effective drag distance (~screen height)
+TICK_HZ = 90.0            # scroll event rate (higher = smoother)
+NATURAL = False           # True inverts scroll direction
+HORIZONTAL_SCROLL = False # True enables distance-based horizontal panning
+TOGGLE_MODE = True        # True: click to start/stop instead of hold-and-drag
+DESKTOP_SCROLL = False    # True: also autoscroll over the desktop and panels
+GHOST_CURSOR = False      # hold-mode ghost; toggle mode uses a fixed anchor
+GHOST_SCALE = 1.0         # ghost travel per unit of mouse motion
+
+# Window-identity substrings (case-insensitive) over which HyperScroll pauses
+# and the middle button behaves natively.
+BLACKLIST = ["freecad", "orcaslicer", "minecraft", "blender", "steam"]
+
+# If non-empty, autoscroll is active only when at least one of these
+# case-insensitive substrings matches the focused window identity. The
+# blacklist always wins. Empty means every non-blacklisted application.
+ALLOWLIST = []
+
+# Fail safe when the GNOME helper is unavailable: native middle-button
+# behavior is preserved instead of unexpectedly taking over CAD or games.
+REQUIRE_FOCUS_HELPER = True
+
+# Devices to grab even though they aren't detected as a mouse, and devices
+# never to grab even if they are. Entries are device specs (see
+# device_matches): a /dev/input path, "vendor:product" in hex, or a
+# case-insensitive part of the device name.
+EXTRA_DEVICES = []
+IGNORE_DEVICES = []
+ONLY_DEVICES = []
+
+# Grabbing a keyboard means this input daemon reads every key on it, and it
+# loses key repeat and LEDs on the way through the mirror, so HyperScroll
+# refuses keyboard-class devices even when a config asks for one.
+ALLOW_KEYBOARDS = False
+
+# Desktop-environment shells (desktop, panels, taskbars) - autoscroll over
+# these is almost never wanted (on KDE it switches virtual desktops; panels
+# have nothing to scroll). Blocked exactly like BLACKLIST, but only while
+# DESKTOP_SCROLL is off (the default). Lowercase, to match parse_blacklist.
+DESKTOP_SHELLS = ["plasmashell", "nemo-desktop", "xfdesktop", "waybar",
+                  "xfce4-panel", "org.gnome.shell", "gjs"]
+
+HIRES_PER_LINE = 120      # kernel convention: 120 hi-res units per notch
+MAX_TICK_DT = 0.25        # cap the per-tick time step (see ticker())
+GHOST_HZ = 60.0           # rate of ghost-cursor updates to the helper
+# Prefixing the marker this way makes this host's input-remapper udev rules
+# preserve the physical mouse's DPI metadata without trying to autoload a
+# preset for our virtual mirror. HyperScroll still owns and creates it.
+PHYS_MARKER = "input-remapper/bazzite-hyperscroll"
+CONFIG_PATH = "/etc/bazzite-hyperscroll.conf"
+SOCK_DIR = "/run/bazzite-hyperscroll"
+SOCK_PATH = SOCK_DIR + "/state.sock"
+GRAB_PATH = SOCK_DIR + "/grabbed"
+DEV_DIR = "/dev/input"
+
+# Bounds. The config picks which devices the system daemon opens and the state
+# socket is reachable by every logged-in user, so both are kept small
+# enough that a bad or hostile value costs nothing.
+MAX_CONFIG_BYTES = 65536   # a config bigger than this is ignored
+MAX_SPECS = 32             # device specs per list
+MAX_SPEC_LEN = 128         # characters per device spec
+MIN_NAME_SPEC = 3          # a shorter name fragment would match everything
+MAX_GRABBED = 16           # devices grabbed at once
+MAX_CLIENTS = 16           # state-socket connections
+MAX_CLIENTS_PER_UID = 4
+SOCK_LIMIT = 4096          # per-connection read buffer
+MAX_FOCUS_LEN = 256        # characters kept from a focus report
+FOCUS_TTL = 3.0            # fail safe if the sidecar stops heartbeating
+WRITE_SKIP_BYTES = 4096    # skip updates for a client this far behind
+WRITE_DROP_BYTES = 65536   # disconnect a client this far behind
+
+FLOAT_KEYS = {"DEADZONE_PX", "TICK_HZ", "SPEED_MULT", "SPEED_EXP",
+              "MAX_PX_PER_SEC", "PX_PER_NOTCH", "MAX_DRAG_PX", "GHOST_SCALE"}
+BOOL_KEYS = {"NATURAL", "TOGGLE_MODE", "DESKTOP_SCROLL", "GHOST_CURSOR",
+             "ALLOW_KEYBOARDS", "REQUIRE_FOCUS_HELPER", "HORIZONTAL_SCROLL"}
+DEVICE_KEYS = {"EXTRA_DEVICES", "IGNORE_DEVICES", "ONLY_DEVICES"}
+# Zero would divide by zero (TICK_HZ, PX_PER_NOTCH) or make the daemon
+# silently never scroll; only the dead zone may be zero.
+POSITIVE_KEYS = FLOAT_KEYS - {"DEADZONE_PX"}
+VALUE_RANGES = {
+    "DEADZONE_PX": (0.0, 500.0),
+    "TICK_HZ": (10.0, 360.0),
+    "SPEED_MULT": (0.000001, 100.0),
+    "SPEED_EXP": (0.1, 5.0),
+    "MAX_PX_PER_SEC": (1.0, 100000.0),
+    "PX_PER_NOTCH": (1.0, 1000.0),
+    "MAX_DRAG_PX": (10.0, 10000.0),
+    "GHOST_SCALE": (0.1, 10.0),
+}
+
+# A device spec written as vendor:product, both hex.
+VID_PID_RE = re.compile(r"^[0-9a-fA-F]{1,4}:[0-9a-fA-F]{1,4}$")
+# Keys a device must have for us to call it a keyboard.
+KEYBOARD_KEYS = (e.KEY_A, e.KEY_Z, e.KEY_SPACE, e.KEY_ENTER)
+
+
+def parse_bool(text):
+    return text.strip().lower() in ("1", "true", "yes", "on")
+
+
+def validate(key, val):
+    """Return an error string if val is out of bounds for key, else None."""
+    if not math.isfinite(val):
+        return "must be a finite number"
+    if key in POSITIVE_KEYS and val <= 0:
+        return "must be strictly greater than zero"
+    if val < 0:
+        return "must not be negative"
+    low, high = VALUE_RANGES[key]
+    if not low <= val <= high:
+        return f"must be between {low:g} and {high:g}"
+    return None
+
+
+def parse_blacklist(text):
+    return [p.strip().lower() for p in text.split(",") if p.strip()]
+
+
+def spec_kind(spec):
+    """Which of the three device-spec forms this is."""
+    if spec.startswith("/"):
+        return "path"
+    if VID_PID_RE.match(spec):
+        return "id"
+    return "name"
+
+
+def parse_devices(text):
+    """Device specs from a comma-separated config value."""
+    return validate_devices(text.split(","))
+
+
+def validate_devices(parts):
+    """The usable device specs out of parts, bounds enforced.
+
+    Rejects what would be dangerous rather than merely wrong: a path
+    outside /dev/input (nothing else can be an input node), and a name
+    fragment so short it would match half the devices on the machine and
+    have us exclusively grab them all.
+    """
+    specs = []
+    for part in parts:
+        spec = part.strip()
+        if not spec:
+            continue
+        if len(specs) >= MAX_SPECS:
+            log.error("config: more than %d device specs; ignoring the rest",
+                      MAX_SPECS)
+            break
+        if len(spec) > MAX_SPEC_LEN:
+            log.error("config: device spec longer than %d characters "
+                      "ignored: %.40s...", MAX_SPEC_LEN, spec)
+            continue
+        kind = spec_kind(spec)
+        if kind == "path" and not spec.startswith(DEV_DIR + "/"):
+            log.error("config: device path %r ignored: must be under %s",
+                      spec, DEV_DIR)
+            continue
+        if kind == "name" and len(spec) < MIN_NAME_SPEC:
+            log.error("config: device name %r ignored: at least %d "
+                      "characters, so it can't match everything",
+                      spec, MIN_NAME_SPEC)
+            continue
+        specs.append(spec)
+    return specs
+
+
+def read_config_text(path):
+    """The config file's text, or None if it is missing or untrustworthy.
+
+    This file decides which devices the daemon opens and grabs, so it is
+    only honoured when root owns it and nobody else can write it. The
+    check is done with fstat on the open descriptor (and O_NOFOLLOW on the
+    way in), so there is no window between checking and reading.
+    """
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    except FileNotFoundError:
+        return None
+    except OSError as err:
+        log.error("config: cannot read %s: %s", path, err)
+        return None
+    with os.fdopen(fd, "rb") as f:
+        st = os.fstat(f.fileno())
+        if st.st_uid != 0 or st.st_mode & 0o022:
+            log.error("config: ignoring %s: it must be owned by root and not "
+                      "writable by group or others (uid %d, mode %04o)",
+                      path, st.st_uid, st.st_mode & 0o7777)
+            return None
+        data = f.read(MAX_CONFIG_BYTES + 1)
+    if len(data) > MAX_CONFIG_BYTES:
+        log.error("config: ignoring %s: larger than %d bytes",
+                  path, MAX_CONFIG_BYTES)
+        return None
+    return data.decode("utf-8", "replace")
+
+
+def load_config(path=CONFIG_PATH):
+    text = read_config_text(path)
+    if text is None:
+        return
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if "=" not in line:
+            continue
+        k, v = (p.strip() for p in line.split("=", 1))
+        if k in FLOAT_KEYS:
+            try:
+                val = float(v)
+            except ValueError:
+                log.error("config: bad value for %s: %r (keeping %g)",
+                          k, v, globals()[k])
+                continue
+            err = validate(k, val)
+            if err:
+                log.error("config: %s = %g rejected: %s (keeping %g)",
+                          k, val, err, globals()[k])
+                continue
+            globals()[k] = val
+        elif k in BOOL_KEYS:
+            globals()[k] = parse_bool(v)
+        elif k in ("BLACKLIST", "ALLOWLIST"):
+            globals()[k] = parse_blacklist(v)
+        elif k in DEVICE_KEYS:
+            globals()[k] = parse_devices(v)
+        else:
+            log.warning("config: unknown key %s", k)
+
+
+def _peer_uid(sock):
+    """UID of the process on the other end of a unix socket, or None."""
+    if sock is None:
+        return None
+    try:
+        creds = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED,
+                                struct.calcsize("3i"))
+        _pid, uid, _gid = struct.unpack("3i", creds)
+        return uid
+    except OSError:
+        return None
+
+
+def _uid_state(uid):
+    """logind's STATE for a uid ("active", "online", ...), or "".
+
+    logind writes /run/systemd/users/<uid> with a STATE line for each
+    logged-in user. Without logind every uid comes back as "" and is
+    trusted with nothing.
+    """
+    try:
+        with open(f"/run/systemd/users/{uid}") as f:
+            for line in f:
+                if line.startswith("STATE="):
+                    return line.strip()[len("STATE="):]
+    except OSError:
+        pass
+    return ""
+
+
+def _uid_is_active(uid):
+    """True if uid owns the session currently in front of the screen.
+
+    Focus and cursor motion come only from the session actually being used,
+    never from another user's backgrounded session or a service account.
+    """
+    return _uid_state(uid) == "active"
+
+
+def sd_notify(message):
+    """Send a readiness/watchdog message when systemd supplied a socket."""
+    address = os.environ.get("NOTIFY_SOCKET", "")
+    if not address:
+        return
+    if address.startswith("@"):
+        address = "\0" + address[1:]
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as notify:
+            notify.connect(address)
+            notify.sendall(message.encode("utf-8"))
+    except OSError as err:
+        log.debug("sd_notify failed: %s", err)
+
+
+def set_grab_health(active, path=""):
+    """Publish whether at least one selected physical mouse is grabbed."""
+    try:
+        if not active:
+            try:
+                os.unlink(GRAB_PATH)
+            except FileNotFoundError:
+                pass
+            return
+        fd = os.open(GRAB_PATH,
+                     os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW,
+                     0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as marker:
+            marker.write(path + "\n")
+    except OSError as err:
+        log.warning("cannot update grab health marker: %s", err)
+
+
+class FocusFilter:
+    """The focused window class reported by each connected helper.
+
+    The system daemon can't see session windows itself, so the GNOME sidecar
+    reports its focused window's identity. We keep one
+    entry per helper and pause HyperScroll when any of them has a
+    blacklisted app focused. Keeping them separate means one helper
+    disconnecting can't wipe another's report.
+    """
+
+    def __init__(self):
+        self.by_client = {}
+        self.focus_stamp_by_client = {}
+        self.offset_by_client = {}
+
+    def update(self, client, wclass):
+        # Bounded and stripped of control characters: this string comes
+        # off a socket and ends up in the journal.
+        clean = "".join(c for c in wclass if c.isprintable())[:MAX_FOCUS_LEN]
+        self.by_client[client] = clean
+        self.focus_stamp_by_client[client] = time.monotonic()
+        log.debug("focus: %r (blocked=%s)", clean, self.blocked)
+
+    def remove(self, client):
+        self.by_client.pop(client, None)
+        self.focus_stamp_by_client.pop(client, None)
+        self.offset_by_client.pop(client, None)
+
+    def update_offset(self, client, dx, dy):
+        """Record a GNOME-reported cursor offset in real screen pixels."""
+        dx = _clamp(float(dx))
+        dy = _clamp(float(dy))
+        self.offset_by_client[client] = (time.monotonic(), dx, dy)
+
+    def clear_offsets(self):
+        self.offset_by_client.clear()
+
+    @property
+    def offset(self):
+        """Freshest screen-pixel offset, or None when the helper is stale."""
+        if not self.offset_by_client:
+            return None
+        stamp, dx, dy = max(self.offset_by_client.values(), key=lambda item: item[0])
+        if time.monotonic() - stamp > 0.5:
+            return None
+        return dx, dy
+
+    @property
+    def blocked(self):
+        now = time.monotonic()
+        identities = [
+            identity for client, identity in self.by_client.items()
+            if now - self.focus_stamp_by_client.get(client, 0) <= FOCUS_TTL
+        ]
+        if REQUIRE_FOCUS_HELPER and not identities:
+            return True
+        blockers = BLACKLIST if DESKTOP_SCROLL else BLACKLIST + DESKTOP_SHELLS
+        for wclass in identities:
+            c = wclass.lower()
+            if any(b in c for b in blockers):
+                return True
+        if ALLOWLIST:
+            return not any(
+                any(allowed in identity.lower() for allowed in ALLOWLIST)
+                for identity in identities
+            )
+        return False
+
+
+class Notifier:
+    """State socket shared with the GNOME session sidecar.
+
+    Sends b"1\\n" when a drag-scroll starts and b"0\\n" when it stops (and
+    the current state on connect) so the helper can draw the anchor. It
+    reads "focus <window identity>" lines to drive app filtering and
+    "offset <dx> <dy>" lines for the post-libinput cursor distance.
+
+    Security notes, because this socket is reachable by every logged-in
+    user: only helpers running in the currently active seat user are accepted,
+    the number of connections is capped overall and per
+    uid, lines in are length-bounded, and the "pos" stream - the only
+    thing here that says anything about what the user is doing - goes only
+    to the session that is currently active. Positions are offsets from
+    the anchor, never absolute coordinates. Purely advisory otherwise:
+    scrolling works with no listeners, and failing to bind is non-fatal.
+    """
+
+    def __init__(self, focus):
+        self.focus = focus
+        self.writers = {}       # writer -> peer uid
+        self.msg = b"0\n"
+        self.server = None
+        self.last_pos = None
+        self.active_uids = frozenset()
+
+    async def start(self):
+        try:
+            os.makedirs(SOCK_DIR, exist_ok=True)
+            try:
+                os.unlink(SOCK_PATH)
+            except FileNotFoundError:
+                pass
+            # limit= bounds what one peer can make us buffer per line.
+            self.server = await asyncio.start_unix_server(
+                self._client, SOCK_PATH, limit=SOCK_LIMIT)
+            # World-accessible so any session's helper can connect; each
+            # connection is then checked by peer UID before we trust it.
+            # RuntimeDirectory is owned by this non-login service account and
+            # is not writable by peers, so nobody else can replace the socket.
+            os.chmod(SOCK_PATH, 0o666)
+        except OSError as err:
+            log.warning("state socket unavailable: %s", err)
+
+    def _too_many(self, uid):
+        if len(self.writers) >= MAX_CLIENTS:
+            return True
+        same = sum(1 for u in self.writers.values() if u == uid)
+        return same >= MAX_CLIENTS_PER_UID
+
+    async def _client(self, reader, writer):
+        uid = _peer_uid(writer.get_extra_info("socket"))
+        if uid is None or not _uid_is_active(uid):
+            log.debug("rejected socket from uid %s", uid)
+            writer.close()
+            return
+        if self._too_many(uid):
+            # Every connection costs a broadcast slot at GHOST_HZ, so a
+            # user can't open thousands and make us spin.
+            log.warning("too many state-socket clients; refusing uid %s", uid)
+            writer.close()
+            return
+        client = object()  # identity key for this connection's focus report
+        self.writers[writer] = uid
+        if _uid_is_active(uid):
+            self.active_uids |= {uid}
+        try:
+            writer.write(self.msg)
+            while True:
+                line = await reader.readline()
+                if not line:
+                    break
+                text = line.decode("utf-8", "replace").strip()
+                if text.startswith("focus "):
+                    if _uid_is_active(uid):
+                        self.focus.update(client, text[len("focus "):])
+                    else:
+                        self.focus.remove(client)
+                elif text.startswith("offset ") and _uid_is_active(uid):
+                    parts = text.split()
+                    if len(parts) == 3:
+                        try:
+                            dx, dy = (float(parts[1]), float(parts[2]))
+                        except ValueError:
+                            continue
+                        if math.isfinite(dx) and math.isfinite(dy):
+                            self.focus.update_offset(client, dx, dy)
+        except (OSError, ConnectionError, ValueError):
+            pass  # ValueError: line over SOCK_LIMIT, drop the peer
+        finally:
+            self.writers.pop(writer, None)
+            self.focus.remove(client)
+            writer.close()
+
+    def _drop(self, writer):
+        self.writers.pop(writer, None)
+        try:
+            writer.close()
+        except (OSError, ConnectionError):
+            pass
+
+    def _broadcast(self, msg, active_only=False):
+        for w, uid in list(self.writers.items()):
+            if active_only and uid not in self.active_uids:
+                continue
+            try:
+                # A helper that stops reading must not grow our memory:
+                # skip it while it is behind, drop it if it stays behind.
+                pending = w.transport.get_write_buffer_size()
+                if pending > WRITE_DROP_BYTES:
+                    log.warning("dropping a state-socket client that is "
+                                "not reading (uid %s)", uid)
+                    self._drop(w)
+                    continue
+                if pending > WRITE_SKIP_BYTES:
+                    continue
+                w.write(msg)
+            except (OSError, ConnectionError, AttributeError):
+                self._drop(w)
+
+    def set(self, active):
+        msg = b"1\n" if active else b"0\n"
+        if msg == self.msg:
+            return
+        self.msg = msg
+        self.focus.clear_offsets()
+        self.last_pos = None  # each drag re-sends its position
+        if active:
+            # Re-checked per drag: sessions switch while we run.
+            self.active_uids = frozenset(
+                u for u in set(self.writers.values()) if _uid_is_active(u))
+        self._broadcast(msg)
+
+    def pos(self, dx, dy):
+        """Offset of the ghost cursor from the anchor, in screen pixels."""
+        if self.msg != b"1\n":
+            return
+        p = (int(dx), int(dy))
+        if p == self.last_pos:
+            return
+        self.last_pos = p
+        self._broadcast(b"pos %d %d\n" % p, active_only=True)
+
+
+class MirrorUInput(UInput):
+    """A write-only UInput device whose event path is found through sysfs.
+
+    python-evdev normally re-opens every virtual input device it creates.
+    HyperScroll only needs the uinput write descriptor, and granting its
+    service account read access to virtual event nodes would widen the udev
+    policy for no functional benefit. UI_GET_SYSNAME plus sysfs gives us the
+    event path and phys-marker self-check without opening that event node.
+    """
+
+    def _find_device(self, fd):
+        self.event_path = None
+        self.reported_phys = ""
+        try:
+            sysname = _uinput.get_sysname(fd)
+            syspath = f"/sys/devices/virtual/input/{sysname}"
+            with open(os.path.join(syspath, "phys"), encoding="utf-8") as f:
+                self.reported_phys = f.read().strip()
+            event = next((name for name in os.listdir(syspath)
+                          if re.fullmatch(r"event[0-9]+", name)), None)
+            if event:
+                self.event_path = os.path.join(DEV_DIR, event)
+        except OSError:
+            # The phys marker and strict ONLY_DEVICES match remain the two
+            # independent feedback-loop guards when old kernels lack this.
+            pass
+        return None
+
+
+class State:
+    """Scroll session for one grabbed mouse.
+
+    ``ui`` is that mouse's own uinput mirror: scroll events for this session
+    are injected through it, and it carries the source mouse's identity so
+    the compositor keeps the mouse's per-device pointer settings.
+    """
+
+    def __init__(self, ui, source_rels=()):
+        self.ui = ui
+        self.task = None
+        self.source_hires_v = e.REL_WHEEL_HI_RES in source_rels
+        self.source_hires_h = e.REL_HWHEEL_HI_RES in source_rels
+        self.reset()
+
+    def reset(self):
+        self.pending = False      # middle held, deadzone not yet exceeded
+        self.active = False       # hold-drag scrolling
+        self.toggled = False      # toggle-mode scrolling (no button held)
+        self.passthrough = False  # middle held over a blacklisted app
+        self.eat_release = None   # button whose release to swallow (toggle)
+        self.dx = 0.0             # cursor offset from the origin
+        self.dy = 0.0
+        self.acc_v = 0.0          # fractional hi-res units carried over
+        self.acc_h = 0.0
+        self.notch_v = 0.0        # hi-res units accumulated toward a notch
+        self.notch_h = 0.0
+
+    @property
+    def scrolling(self):
+        """True whenever scroll events should be emitted this tick."""
+        return self.active or self.toggled
+
+    def press(self):
+        self.reset()
+        self.pending = True
+
+    def begin_toggle(self):
+        """Start toggle-mode autoscroll, anchored at the current point."""
+        self.reset()
+        self.toggled = True
+
+    def release(self):
+        """Return True if this was a plain click (no drag)."""
+        was_click = self.pending
+        self.reset()
+        return was_click
+
+
+def _clamp(v):
+    # The cursor is anchored during a drag, so nothing bounds the drag
+    # distance on its own; cap it the way Windows caps the cursor at the
+    # screen edge, so slowing down never needs a huge reverse drag.
+    return math.copysign(min(abs(v), MAX_DRAG_PX), v)
+
+
+def _is_button(code):
+    """True for a mouse button code (BTN_LEFT/RIGHT/MIDDLE/SIDE/...)."""
+    return e.BTN_MOUSE <= code < e.BTN_JOYSTICK
+
+
+def _accumulate(st, ev):
+    """Fold a REL_X/REL_Y delta into the offset from the scroll origin."""
+    if ev.code == e.REL_X:
+        st.dx = _clamp(st.dx + ev.value)
+    else:
+        st.dy = _clamp(st.dy + ev.value)
+
+
+def _supplement_physical_wheel(st, ui, ev):
+    """Add canonical hi-res units when the source has only legacy detents."""
+    if ev.code == e.REL_WHEEL and not st.source_hires_v:
+        ui.write(e.EV_REL, e.REL_WHEEL_HI_RES,
+                 ev.value * HIRES_PER_LINE)
+    elif ev.code == e.REL_HWHEEL and not st.source_hires_h:
+        ui.write(e.EV_REL, e.REL_HWHEEL_HI_RES,
+                 ev.value * HIRES_PER_LINE)
+
+
+def speed_px(offset):
+    """Pixels/second for a per-axis offset from the press point.
+
+    Inside the dead zone the speed is zero; outside it grows as
+    offset^2.2, so small drags crawl and full-screen drags fly.
+    """
+    if abs(offset) <= DEADZONE_PX:
+        return 0.0
+    v = SPEED_MULT * abs(offset) ** SPEED_EXP
+    return math.copysign(min(v, MAX_PX_PER_SEC), offset)
+
+
+async def ticker(states, notifier, focus):
+    # Measure the real time between ticks instead of assuming 1/TICK_HZ:
+    # under load asyncio.sleep overshoots, and using the nominal step
+    # would quietly make scrolling slower than configured.
+    last = time.monotonic()
+    last_ghost = last
+    while True:
+        await asyncio.sleep(1.0 / TICK_HZ)
+        now = time.monotonic()
+        dt = min(now - last, MAX_TICK_DT)  # cap so a stall can't lurch
+        last = now
+        screen_offset = focus.offset
+        for st in list(states.values()):
+            try:
+                # In toggle mode GNOME reports the post-libinput cursor
+                # distance in actual screen pixels. This makes the Windows
+                # speed curve independent of mouse DPI and acceleration.
+                if st.toggled:
+                    if screen_offset is not None:
+                        st.dx, st.dy = screen_offset
+                    elif REQUIRE_FOCUS_HELPER:
+                        # Never fall back to raw high-DPI mouse counts when
+                        # the GNOME helper stalls. Pausing at the origin is
+                        # safer than an unexpected speed jump.
+                        st.dx = st.dy = 0.0
+                tick(st, dt, focus)
+            except Exception as err:  # one bad tick must not kill the loop
+                log.error("tick error: %r", err)
+                # The pump owns the physical grab and all cleanup. Cancel it
+                # immediately so a broken uinput writer cannot strand the
+                # real mouse while the ticker/watchdog itself stays healthy.
+                if st.task is not None and not st.task.done():
+                    st.task.cancel()
+        notifier.set(any(st.scrolling for st in states.values()))
+        if GHOST_CURSOR and now - last_ghost >= 1.0 / GHOST_HZ:
+            last_ghost = now
+            # Only an anchored drag has a ghost: in toggle mode the real
+            # cursor moves, so there is nothing to stand in for it.
+            dragging = next((s for s in states.values() if s.active), None)
+            if dragging is not None:
+                notifier.pos(dragging.dx * GHOST_SCALE,
+                             dragging.dy * GHOST_SCALE)
+
+
+def tick(st, dt, focus):
+    if focus.blocked:
+        # A blacklisted app is focused. Never scroll, and stop anything
+        # already running (focus changed mid-scroll) so it can't keep
+        # scrolling under the blacklisted app.
+        if st.scrolling or st.pending:
+            st.reset()
+        return
+    if (not TOGGLE_MODE and st.pending
+            and (abs(st.dx) > DEADZONE_PX or abs(st.dy) > DEADZONE_PX)):
+        st.pending = False
+        st.active = True
+        log.debug("scroll started")
+    if not st.scrolling:
+        return
+    ui = st.ui
+    s = 1 if NATURAL else -1
+    to_hires = HIRES_PER_LINE / PX_PER_NOTCH
+    # Drag down => wheel-down (negative REL_WHEEL). Horizontal panning is
+    # opt-in because tab bars and CAD canvases often assign it other actions.
+    st.acc_v += s * speed_px(st.dy) * to_hires * dt
+    if HORIZONTAL_SCROLL:
+        st.acc_h += -s * speed_px(st.dx) * to_hires * dt
+    else:
+        st.acc_h = 0.0
+        st.notch_h = 0.0
+    wrote = False
+    iv = int(st.acc_v)
+    if iv:
+        st.acc_v -= iv
+        st.notch_v += iv
+        ui.write(e.EV_REL, e.REL_WHEEL_HI_RES, iv)
+        n = int(st.notch_v / HIRES_PER_LINE)
+        if n:
+            st.notch_v -= n * HIRES_PER_LINE
+            ui.write(e.EV_REL, e.REL_WHEEL, n)
+        wrote = True
+    ih = int(st.acc_h)
+    if ih:
+        st.acc_h -= ih
+        st.notch_h += ih
+        ui.write(e.EV_REL, e.REL_HWHEEL_HI_RES, ih)
+        n = int(st.notch_h / HIRES_PER_LINE)
+        if n:
+            st.notch_h -= n * HIRES_PER_LINE
+            ui.write(e.EV_REL, e.REL_HWHEEL, n)
+        wrote = True
+    if wrote:
+        ui.syn()
+
+
+def _resync(ui, dev, held, st):
+    """Release any virtual button the real device no longer holds down.
+
+    Called after SYN_DROPPED, where the kernel dropped events on us and a
+    button release may be among them. We compare the buttons we're holding
+    on the virtual device against the real device's current state and let
+    go of the difference, so a dropped release can't leave a stuck button.
+    """
+    active = dev.active_keys()
+    changed = False
+    for code in list(held):
+        if code not in active:
+            ui.write(e.EV_KEY, code, 0)
+            held.discard(code)
+            changed = True
+    if e.BTN_MIDDLE not in active:
+        if st.passthrough:
+            st.passthrough = False
+            ui.write(e.EV_KEY, e.BTN_MIDDLE, 0)  # we did press it through
+            changed = True
+        elif st.pending or st.active:
+            st.release()  # drag button never went to the virtual device
+    if st.eat_release is not None and st.eat_release not in active:
+        st.eat_release = None
+    if changed:
+        ui.syn()
+
+
+def make_uinput(dev):
+    """A uinput mirror that carries the source mouse's identity.
+
+    We grab the physical mouse and re-emit its events through this virtual
+    device, so the compositor sees the mirror - not the real mouse - as the
+    pointer. Copying the source's name and vendor/product/version lets
+    libinput and KDE match the user's existing per-device settings (pointer
+    speed, acceleration profile) to the mirror, rather than treating it as a
+    brand-new device and falling back to defaults. A distinctive phys string
+    lets us recognise and skip our own mirrors during hotplug.
+    """
+    caps = dev.capabilities(absinfo=False)
+    keys = set(caps.get(e.EV_KEY, ()))
+    keys |= set(range(e.BTN_MOUSE, e.BTN_JOYSTICK))  # all mouse button codes
+    rels = set(caps.get(e.EV_REL, ()))
+    rels |= {e.REL_X, e.REL_Y, e.REL_WHEEL, e.REL_HWHEEL,
+             e.REL_WHEEL_HI_RES, e.REL_HWHEEL_HI_RES}  # codes we inject
+    info = dev.info
+    return MirrorUInput(
+        {e.EV_KEY: sorted(keys), e.EV_REL: sorted(rels)},
+        name=dev.name,
+        vendor=info.vendor,
+        product=info.product,
+        version=info.version,
+        bustype=info.bustype,
+        phys=PHYS_MARKER,
+    )
+
+
+def phys_roundtrips():
+    """True if a uinput device reports back the phys string we set on it.
+
+    is_mouse() skips our own mirrors by their PHYS_MARKER, with the tracked
+    device paths (our_paths) as backup. On a kernel where the phys string
+    doesn't survive, is_mouse can't tell a mirror apart, so the operator
+    should know the path tracking is doing all the work.
+    """
+    try:
+        probe = MirrorUInput({e.EV_REL: [e.REL_X, e.REL_Y]},
+                             name="bazzite-hyperscroll self-check",
+                             phys=PHYS_MARKER)
+    except OSError as err:
+        log.warning("phys self-check: cannot open uinput: %s", err)
+        return False
+    try:
+        return PHYS_MARKER in probe.reported_phys
+    finally:
+        probe.close()
+
+
+def _toggle_key(ev, st, ui, focus):
+    """Handle a mouse-button event in toggle mode.
+
+    Windows-Explorer style: a middle click starts autoscroll, then any
+    click stops it. Returns True if the event was consumed (swallowed),
+    False if it should be forwarded like a normal button press.
+    """
+    code = ev.code
+    # Finish swallowing the click that stopped autoscroll: eat its release
+    # so the app underneath never sees the stopping click.
+    if ev.value == 0 and st.eat_release == code:
+        st.eat_release = None
+        return True
+    if st.toggled:
+        # Autoscroll is running: any button press stops it, consumed so the
+        # click doesn't also land in whatever is under the cursor.
+        if ev.value == 1:
+            log.debug("toggle scroll stopped")
+            st.reset()
+            st.eat_release = code
+            return True
+        # A release for a button that was already held before autoscroll
+        # began still belongs to the application; swallowing it would leave
+        # that virtual button stuck down. The matching stop-click release is
+        # handled by eat_release above.
+        return False
+    # Idle: only the middle button starts autoscroll.
+    if code == e.BTN_MIDDLE:
+        if ev.value == 1:
+            if focus.blocked:
+                st.passthrough = True
+                ui.write(e.EV_KEY, e.BTN_MIDDLE, 1)
+                ui.syn()
+            else:
+                st.pending = True
+        elif ev.value == 0:
+            if st.passthrough:
+                st.passthrough = False
+                ui.write(e.EV_KEY, e.BTN_MIDDLE, 0)
+                ui.syn()
+            elif st.pending:
+                st.pending = False
+                st.begin_toggle()
+                log.debug("toggle scroll started")
+        return True
+    return False  # other buttons while idle pass straight through
+
+
+async def pump(path, dev, states, tasks, focus, our_paths, seen):
+    """Grab one mouse and forward its events, intercepting middle-drags."""
+    # Belt to is_mouse's phys check and main's our_paths skip: never pump one
+    # of our own mirrors. Guards the brief hotplug window between a mirror
+    # appearing and our_paths learning its path, so a phys hiccup can't drop
+    # the service process into a 90 Hz input feedback loop.
+    if PHYS_MARKER in (dev.phys or "") or path in our_paths:
+        log.warning("refusing to grab our own mirror %s (%s)", dev.name, path)
+        dev.close()
+        tasks.pop(path, None)
+        seen.discard(path)
+        return
+    ui = None
+    try:
+        # Create the mirror before taking the exclusive grab. If uinput setup
+        # fails, the physical mouse therefore never freezes, even briefly.
+        ui = make_uinput(dev)
+    except Exception as err:
+        log.warning("cannot mirror %s: %s", dev.name, err)
+        dev.close()
+        tasks.pop(path, None)
+        seen.discard(path)
+        return
+    try:
+        dev.grab()
+    except OSError as err:
+        log.warning("cannot grab %s: %s", path, err)
+        try:
+            ui.close()
+        except Exception:
+            pass
+        try:
+            dev.close()
+        except Exception:
+            pass
+        tasks.pop(path, None)
+        seen.discard(path)
+        return
+    mirror_path = None
+    st = None
+    held = set()  # non-middle buttons we're currently holding down virtually
+    desynced = False
+    try:
+        # Everything after EVIOCGRAB belongs inside this cleanup scope. Even a
+        # hot-unplug during capability discovery must close the physical fd.
+        mirror_path = ui.event_path
+        if mirror_path:
+            our_paths.add(mirror_path)
+        source_rels = set(dev.capabilities().get(e.EV_REL, ()))
+        st = states[path] = State(ui, source_rels)
+        st.task = asyncio.current_task()
+        log.info("grabbed %s (%s)", dev.name, path)
+        set_grab_health(True, path)
+        sd_notify("STATUS=HyperScroll is active")
+        async for ev in dev.async_read_loop():
+            # After SYN_DROPPED, Linux declares every queued event undefined.
+            # Discard through the next report, then reconcile held buttons
+            # against the kernel's current state before resuming.
+            if desynced:
+                if ev.type == e.EV_SYN and ev.code == e.SYN_REPORT:
+                    _resync(ui, dev, held, st)
+                    desynced = False
+                continue
+            if ev.type == e.EV_SYN and ev.code == e.SYN_DROPPED:
+                desynced = True
+                continue
+            if TOGGLE_MODE and ev.type == e.EV_KEY and _is_button(ev.code):
+                if _toggle_key(ev, st, ui, focus):
+                    continue
+                # An unrelated button while idle: fall through and forward it.
+            elif ev.type == e.EV_KEY and ev.code == e.BTN_MIDDLE:
+                if ev.value == 1:
+                    if focus.blocked:
+                        # A blacklisted app owns middle-drag; pass the
+                        # button straight through, held state and all.
+                        st.passthrough = True
+                        log.debug("middle press passed through (%r focused)",
+                                  next(iter(focus.by_client.values()), ""))
+                        ui.write(e.EV_KEY, e.BTN_MIDDLE, 1)
+                    else:
+                        st.press()
+                elif ev.value == 0:
+                    if st.passthrough:
+                        st.passthrough = False
+                        ui.write(e.EV_KEY, e.BTN_MIDDLE, 0)
+                    elif st.release():
+                        # No drag happened: replay as a normal middle click.
+                        ui.write(e.EV_KEY, e.BTN_MIDDLE, 1)
+                        ui.syn()
+                        ui.write(e.EV_KEY, e.BTN_MIDDLE, 0)
+                        ui.syn()
+                continue
+            if ev.type == e.EV_REL and ev.code in (e.REL_X, e.REL_Y):
+                if st.toggled:
+                    # Toggle mode: track distance from the origin but let the
+                    # motion through, so the cursor follows the hand like
+                    # Windows autoscroll.
+                    _accumulate(st, ev)
+                    ui.write(ev.type, ev.code, ev.value)
+                    continue
+                if st.pending or st.active:
+                    # Hold-drag: swallow cursor motion so the pointer stays
+                    # anchored at the press point. Scroll events then keep
+                    # hitting the original window instead of whatever the
+                    # cursor would have drifted over.
+                    _accumulate(st, ev)
+                    continue
+            # Advertising a hi-res wheel but forwarding only legacy events
+            # makes some libinput versions treat a physical wheel poorly. If
+            # this mouse has no native hi-res axis, synthesize the canonical
+            # 120 units alongside each ordinary detent.
+            if ev.type == e.EV_REL:
+                _supplement_physical_wheel(st, ui, ev)
+            if ev.type == e.EV_SYN:
+                ui.syn()
+            elif ev.type in (e.EV_KEY, e.EV_REL):
+                if ev.type == e.EV_KEY:
+                    if ev.value == 1:
+                        held.add(ev.code)
+                    elif ev.value == 0:
+                        held.discard(ev.code)
+                ui.write(ev.type, ev.code, ev.value)
+    except asyncio.CancelledError:
+        raise
+    except OSError:
+        pass  # device unplugged
+    except Exception:
+        log.exception("input pump failed for %s", path)
+    finally:
+        # Don't leave a button stuck down on the virtual device if the real
+        # one vanished mid-press.
+        try:
+            if held or (st is not None and st.passthrough):
+                for code in held:
+                    ui.write(e.EV_KEY, code, 0)
+                if st is not None and st.passthrough:
+                    ui.write(e.EV_KEY, e.BTN_MIDDLE, 0)
+                ui.syn()
+        except (OSError, ValueError):
+            # A dead uinput fd cannot be repaired, but it must never prevent
+            # the physical fd below from closing and releasing EVIOCGRAB.
+            pass
+        if st is not None:
+            st.reset()
+        if mirror_path:
+            our_paths.discard(mirror_path)
+        try:
+            ui.close()
+        except Exception:
+            pass
+        try:
+            dev.close()
+        except Exception:
+            pass
+        states.pop(path, None)
+        if not states:
+            set_grab_health(False)
+            sd_notify("STATUS=Waiting for the selected mouse")
+        tasks.pop(path, None)
+        seen.discard(path)  # retry transient failures without requiring replug
+        log.info("released %s", path)
+
+
+def _pump_done(path, task, tasks, seen):
+    """Retrieve every pump result and make a failed target retryable."""
+    seen.discard(path)
+    if tasks.get(path) is task:
+        tasks.pop(path, None)
+    if task.cancelled():
+        return
+    try:
+        task.result()
+    except Exception:
+        log.exception("input task failed for %s", path)
+
+
+def is_mouse(dev):
+    if PHYS_MARKER in (dev.phys or ""):
+        return False  # one of our own uinput mirrors
+    caps = dev.capabilities()
+    keys = caps.get(e.EV_KEY, ())
+    rels = caps.get(e.EV_REL, ())
+    # EV_ABS capabilities are (code, AbsInfo) pairs; pull out the codes.
+    abs_codes = {a[0] if isinstance(a, tuple) else a
+                 for a in caps.get(e.EV_ABS, ())}
+    # A plain relative mouse: middle button + both relative axes. Requiring
+    # REL_X *and* REL_Y is what excludes keyboards that expose a stray
+    # BTN_*/REL_X capability through a media or consumer-control collection
+    # (e.g. the Razer BlackWidow), which we were wrongly grabbing before.
+    # Exclude only devices with a pointing absolute axis (touchpads,
+    # touchscreens, tablets); a stray unrelated ABS axis on a gaming mouse or
+    # receiver is fine.
+    return (e.BTN_MIDDLE in keys
+            and e.REL_X in rels
+            and e.REL_Y in rels
+            and e.ABS_X not in abs_codes
+            and e.ABS_MT_POSITION_X not in abs_codes)
+
+
+def is_keyboard(dev):
+    """True for anything you could type on.
+
+    Deliberately broad: if a device can produce letters, HyperScroll stays
+    away from it unless ALLOW_KEYBOARDS says otherwise, so no config can
+    quietly point the daemon at your typing.
+    """
+    keys = set(dev.capabilities().get(e.EV_KEY, ()))
+    return all(k in keys for k in KEYBOARD_KEYS)
+
+
+def device_matches(dev, path, spec):
+    """True if one device spec names this device.
+
+    Three forms: a /dev/input path (including the stable by-id and by-path
+    symlinks), "vendor:product" in hex, or a case-insensitive part of the
+    device name. The spec is never opened - it is only ever compared
+    against nodes the daemon has already enumerated and opened itself - so
+    a spec cannot steer us into opening a path of its choosing, and there
+    is no check-then-open race.
+    """
+    kind = spec_kind(spec)
+    if kind == "path":
+        return os.path.realpath(spec) == path
+    if kind == "id":
+        vendor, product = spec.split(":")
+        return (dev.info.vendor == int(vendor, 16)
+                and dev.info.product == int(product, 16))
+    return spec.lower() in (dev.name or "").strip().lower()
+
+
+def decide_device(dev, path):
+    """(grab?, reason) for one device. The one place that decides.
+
+    Order matters: our own mirrors and keyboards are refused before the
+    config lists are consulted, so no spec can reach either.
+    """
+    if PHYS_MARKER in (dev.phys or ""):
+        return False, "HyperScroll's own mirror"
+    if is_keyboard(dev) and not ALLOW_KEYBOARDS:
+        return False, ("keyboard-class device; set ALLOW_KEYBOARDS in "
+                       f"{CONFIG_PATH} to allow it")
+    ignored = next((s for s in IGNORE_DEVICES
+                    if device_matches(dev, path, s)), None)
+    forced = next((s for s in EXTRA_DEVICES
+                   if device_matches(dev, path, s)), None)
+    selected = next((s for s in ONLY_DEVICES
+                     if device_matches(dev, path, s)), None)
+    if ignored is not None:
+        return False, f"ignored by {ignored!r}"
+    if ONLY_DEVICES and selected is None:
+        return False, "not selected by ONLY_DEVICES"
+    if forced is not None:
+        return True, f"forced by {forced!r}"
+    if is_mouse(dev):
+        if selected is not None:
+            return True, f"selected by {selected!r}"
+        return True, "detected as a mouse"
+    return False, "not a mouse"
+
+
+def want_device(dev, path, our_paths):
+    """Whether to grab a device, logging every decision worth knowing."""
+    if path in our_paths:
+        return False  # one of our own mirrors, before its phys is known
+    grab, reason = decide_device(dev, path)
+    name = (dev.name or "").strip()
+    if grab:
+        if reason != "detected as a mouse":
+            log.info("using %s (%s): %s", name, path, reason)
+    elif any(device_matches(dev, path, s) for s in EXTRA_DEVICES):
+        # Asked for by the config but refused: always say why.
+        log.warning("refusing %s (%s): %s", name, path, reason)
+    else:
+        log.debug("ignoring %s (%s): %s", name, path, reason)
+    return grab
+
+
+def stable_specs():
+    """Map each /dev/input/eventN to its most stable identifier.
+
+    The by-id and by-path symlinks survive reboots and renumbering, which
+    plain eventN does not, so they are what --list-devices recommends and
+    what operators should place in the config.
+    """
+    specs = {}
+    for directory in (DEV_DIR + "/by-path", DEV_DIR + "/by-id"):
+        try:
+            names = os.listdir(directory)
+        except OSError:
+            continue
+        for name in sorted(names):
+            link = os.path.join(directory, name)
+            target = os.path.realpath(link)
+            if target.startswith(DEV_DIR + "/event"):
+                specs[target] = link  # by-id listed last, so it wins
+    return specs
+
+
+def selected_device_paths():
+    """Currently resolved event paths from the strict path allowlist."""
+    return {
+        os.path.realpath(spec)
+        for spec in ONLY_DEVICES
+        if spec_kind(spec) == "path"
+        and os.path.realpath(spec).startswith(DEV_DIR + "/event")
+    }
+
+
+def report_devices():
+    """Print every input device, its identifier and what HyperScroll does."""
+    if os.geteuid() != 0:
+        print("note: run this as root to see every device\n",
+              file=sys.stderr)
+    specs = stable_specs()
+
+    def event_num(path):
+        digits = "".join(c for c in os.path.basename(path) if c.isdigit())
+        return int(digits) if digits else 0
+
+    for path in sorted(list_devices(), key=event_num):
+        try:
+            dev = InputDevice(path)
+        except OSError as err:
+            print(f"{path}\n    cannot open: {err}\n")
+            continue
+        try:
+            info = dev.info
+            grab, reason = decide_device(dev, path)
+            print(f"{path}  {info.vendor:04x}:{info.product:04x}  "
+                  f"{(dev.name or '').strip()}")
+            print(f"    spec: {specs.get(path, path)}")
+            print(f"    {'used' if grab else 'not used'}: {reason}\n")
+        finally:
+            dev.close()
+
+
+async def main():
+    focus = FocusFilter()
+    notifier = Notifier(focus)
+    await notifier.start()
+    states = {}
+    tasks = {}
+    seen = set()
+    our_paths = set()  # event nodes of our own uinput mirrors, never grabbed
+    set_grab_health(False)
+    if not phys_roundtrips():
+        log.warning("uinput phys marker did not round-trip; relying on "
+                    "device-path tracking to skip our own mirrors")
+    tick_task = asyncio.create_task(ticker(states, notifier, focus))
+    log.info("running")
+    sd_notify("READY=1\nSTATUS=Waiting for the selected mouse")
+    try:
+        while True:
+            if tick_task.done():
+                # The service watchdog must not be kept alive if the scroll
+                # engine died; surfacing its result makes systemd restart us.
+                tick_task.result()
+            # Hotplug: probe only paths we have never examined. Non-mouse
+            # devices are remembered and never reopened (repeatedly opening
+            # every input device caused visible input hiccups); a path is
+            # forgotten when it disappears, so replugging re-probes it. Our
+            # own mirror nodes are skipped so we never grab what we emit.
+            paths = set(list_devices())
+            seen &= paths
+            our_paths &= paths
+            # A hotplug event node can briefly precede its stable by-id link.
+            # Reconsider the resolved strict target until it has a live pump,
+            # while leaving unrelated keyboards permanently in `seen`.
+            seen -= selected_device_paths() - set(tasks)
+            for path in sorted(paths - seen - our_paths):
+                seen.add(path)
+                try:
+                    dev = InputDevice(path)
+                except OSError:
+                    continue
+                if not want_device(dev, path, our_paths):
+                    dev.close()
+                    continue
+                if len(tasks) >= MAX_GRABBED:
+                    # A bad config (or a very odd machine) must not have us
+                    # exclusively grab the whole input stack. Replug a
+                    # device to have it reconsidered.
+                    log.warning("already grabbing %d devices; skipping %s",
+                                MAX_GRABBED, path)
+                    dev.close()
+                    continue
+                task = asyncio.create_task(
+                    pump(path, dev, states, tasks, focus, our_paths, seen))
+                tasks[path] = task
+                task.add_done_callback(
+                    lambda done, target=path: _pump_done(
+                        target, done, tasks, seen))
+            await asyncio.sleep(0)
+            sd_notify(f"WATCHDOG=1\nSTATUS=Mirroring {len(tasks)} mouse(s)")
+            await asyncio.sleep(2)
+    finally:
+        sd_notify("STOPPING=1")
+        tick_task.cancel()
+        for t in list(tasks.values()):
+            t.cancel()
+
+
+def _float_arg(key):
+    def parse(text):
+        try:
+            val = float(text)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"{text!r} is not a number")
+        err = validate(key, val)
+        if err:
+            raise argparse.ArgumentTypeError(f"{key} {err}")
+        return val
+    return parse
+
+
+# CLI flag -> (config key, help text); dest is the key lowercased.
+CLI_FLOATS = {
+    "--deadzone-px": ("DEADZONE_PX", "per-axis dead zone in pixels"),
+    "--speed-mult": ("SPEED_MULT", "overall speed multiplier"),
+    "--speed-exp": ("SPEED_EXP", "speed curve exponent"),
+    "--max-px-per-sec": ("MAX_PX_PER_SEC", "scroll speed safety cap"),
+    "--px-per-notch": ("PX_PER_NOTCH",
+                       "pixels one wheel notch scrolls in your apps"),
+    "--max-drag-px": ("MAX_DRAG_PX", "cap on effective drag distance"),
+    "--tick-hz": ("TICK_HZ", "scroll event rate"),
+    "--ghost-scale": ("GHOST_SCALE",
+                      "ghost-cursor travel per unit of mouse motion"),
+}
+
+
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(
+        prog="bazzite-hyperscroll",
+        description="Windows-style middle-click autoscroll daemon for Bazzite GNOME.",
+        epilog=f"Defaults come from {CONFIG_PATH}; command-line options "
+               "override it for this run.")
+    p.add_argument("--version", action="version",
+                   version=f"bazzite-hyperscroll {VERSION}")
+    p.add_argument("--config", default=CONFIG_PATH, metavar="PATH",
+                   help=f"config file to read (default: {CONFIG_PATH})")
+    p.add_argument("--debug", action="store_true",
+                   help="log debug detail (device probing, focus changes, "
+                        "scroll starts)")
+    p.add_argument("--natural", action=argparse.BooleanOptionalAction,
+                   default=None, help="invert the scroll direction")
+    p.add_argument("--horizontal", action=argparse.BooleanOptionalAction,
+                   default=None, dest="horizontal_scroll",
+                   help="enable distance-based horizontal autoscroll "
+                        "(default: off)")
+    p.add_argument("--toggle-mode", action=argparse.BooleanOptionalAction,
+                   default=None, dest="toggle_mode",
+                   help="click to start/stop autoscroll (Windows-Explorer "
+                        "style) instead of hold-and-drag")
+    p.add_argument("--desktop", action=argparse.BooleanOptionalAction,
+                   default=None, dest="desktop_scroll",
+                   help="also autoscroll over the desktop and panels "
+                        "(default: off, so they are left alone)")
+    p.add_argument("--ghost-cursor", action=argparse.BooleanOptionalAction,
+                   default=None, dest="ghost_cursor",
+                   help="tell the session helper where to draw a ghost "
+                        "cursor while dragging (default: off)")
+    p.add_argument("--focus-helper", action=argparse.BooleanOptionalAction,
+                   default=None, dest="require_focus_helper",
+                   help="require the GNOME focus helper; without it, keep "
+                        "native middle-button behavior")
+    p.add_argument("--blacklist", metavar="APPS", default=None,
+                   help="comma-separated window-class substrings over which "
+                        "HyperScroll pauses (default: "
+                        f"\"{', '.join(BLACKLIST)}\"; pass '' to disable)")
+    p.add_argument("--allowlist", metavar="APPS", default=None,
+                   help="optional comma-separated focused-app allowlist")
+    p.add_argument("--extra-device", metavar="SPEC", action="append",
+                   default=None, dest="extra_devices",
+                   help="grab this device even if it isn't detected as a "
+                        "mouse; a /dev/input path, hex vendor:product, or "
+                        "part of the device name. Repeatable; replaces the "
+                        "configured list. See --list-devices")
+    p.add_argument("--ignore-device", metavar="SPEC", action="append",
+                   default=None, dest="ignore_devices",
+                   help="never grab this device, in the same forms as "
+                        "--extra-device. Repeatable; replaces the "
+                        "configured list")
+    p.add_argument("--only-device", metavar="SPEC", action="append",
+                   default=None, dest="only_devices",
+                   help="strict device allowlist; repeatable and replaces "
+                        "the configured list")
+    p.add_argument("--list-devices", action="store_true",
+                   help="list every input device with its identifier and "
+                        "what HyperScroll would do with it, then exit")
+    for flag, (key, help_text) in CLI_FLOATS.items():
+        p.add_argument(flag, dest=key.lower(), type=_float_arg(key),
+                       default=None, metavar="N",
+                       help=f"{help_text} (default: {globals()[key]:g})")
+    return p.parse_args(argv)
+
+
+def cli():
+    args = parse_args()
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO,
+        format="%(levelname)s: %(message)s")
+    load_config(args.config)
+    for key in FLOAT_KEYS:
+        val = getattr(args, key.lower())
+        if val is not None:
+            globals()[key] = val
+    if args.natural is not None:
+        globals()["NATURAL"] = args.natural
+    if args.horizontal_scroll is not None:
+        globals()["HORIZONTAL_SCROLL"] = args.horizontal_scroll
+    if args.toggle_mode is not None:
+        globals()["TOGGLE_MODE"] = args.toggle_mode
+    if args.desktop_scroll is not None:
+        globals()["DESKTOP_SCROLL"] = args.desktop_scroll
+    if args.ghost_cursor is not None:
+        globals()["GHOST_CURSOR"] = args.ghost_cursor
+    if args.require_focus_helper is not None:
+        globals()["REQUIRE_FOCUS_HELPER"] = args.require_focus_helper
+    if args.blacklist is not None:
+        globals()["BLACKLIST"] = parse_blacklist(args.blacklist)
+    if args.allowlist is not None:
+        globals()["ALLOWLIST"] = parse_blacklist(args.allowlist)
+    for key, specs in (("EXTRA_DEVICES", args.extra_devices),
+                       ("IGNORE_DEVICES", args.ignore_devices),
+                       ("ONLY_DEVICES", args.only_devices)):
+        if specs is not None:
+            globals()[key] = validate_devices(specs)
+    if args.list_devices:
+        report_devices()
+        return
+    log.debug("tunables: %s NATURAL=%s HORIZONTAL_SCROLL=%s TOGGLE_MODE=%s DESKTOP_SCROLL=%s "
+              "GHOST_CURSOR=%s ALLOW_KEYBOARDS=%s REQUIRE_FOCUS_HELPER=%s "
+              "BLACKLIST=%s ALLOWLIST=%s EXTRA_DEVICES=%s "
+              "IGNORE_DEVICES=%s ONLY_DEVICES=%s",
+              " ".join(f"{k}={globals()[k]:g}" for k in sorted(FLOAT_KEYS)),
+              NATURAL, HORIZONTAL_SCROLL, TOGGLE_MODE, DESKTOP_SCROLL,
+              GHOST_CURSOR,
+              ALLOW_KEYBOARDS, REQUIRE_FOCUS_HELPER, BLACKLIST, ALLOWLIST,
+              EXTRA_DEVICES, IGNORE_DEVICES, ONLY_DEVICES)
+    asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli()

@@ -1,0 +1,9 @@
+# Grant the dedicated, non-login service account access only to the Razer
+# Viper V3 Pro's pointer interface. Interface 01 also reports keyboard keys
+# and is intentionally excluded. POSIX ACLs preserve Bazzite's existing
+# owner/group and the desktop user's uaccess ACL.
+ACTION=="add|change", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_MOUSE}=="1", ENV{ID_VENDOR_ID}=="1532", ENV{ID_MODEL_ID}=="00c1", ENV{ID_USB_INTERFACE_NUM}=="00", RUN+="/usr/bin/setfacl -m g:bazzite-hyperscroll:r /dev/input/%k"
+
+# Keep the group selected by Bazzite's existing Sunshine rule and add only
+# this service account's group ACL.
+ACTION=="add|change", SUBSYSTEM=="misc", KERNEL=="uinput", OPTIONS+="static_node=uinput", RUN+="/usr/bin/setfacl -m g:bazzite-hyperscroll:rw /dev/%k"

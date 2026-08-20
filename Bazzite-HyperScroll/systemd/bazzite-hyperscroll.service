@@ -1,0 +1,57 @@
+[Unit]
+Description=Bazzite HyperScroll - Windows-style middle-click autoscroll
+Documentation=https://github.com/gnhen/midscroll
+Wants=modprobe@uinput.service
+After=modprobe@uinput.service systemd-udevd.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=bazzite-hyperscroll
+Group=bazzite-hyperscroll
+ExecStart=/usr/bin/python3 /usr/local/bin/bazzite-hyperscroll
+RuntimeDirectory=bazzite-hyperscroll
+RuntimeDirectoryMode=0755
+Restart=always
+RestartSec=2
+WatchdogSec=10
+TimeoutStartSec=15
+
+# A targeted udev rule grants this non-login service account only the Razer
+# pointer interface and uinput. The process has no access to keyboard event
+# nodes, no Linux capabilities, no writable system/home tree, and no network.
+DevicePolicy=closed
+DeviceAllow=/dev/uinput rw
+DeviceAllow=char-input r
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+IPAddressDeny=any
+RestrictAddressFamilies=AF_UNIX
+ProtectProc=invisible
+ProcSubset=pid
+ProtectKernelTunables=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+MemoryDenyWriteExecute=yes
+MemoryMax=128M
+TasksMax=32
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+service=bazzite-hyperscroll.service
+
+case "${1:-status}" in
+    status)
+        systemctl --no-pager --full status "$service"
+        ;;
+    logs)
+        journalctl -u "$service" -b --no-pager
+        ;;
+    follow)
+        journalctl -u "$service" -f
+        ;;
+    stop|kill)
+        sudo systemctl stop "$service"
+        ;;
+    start)
+        sudo systemctl start "$service"
+        ;;
+    restart)
+        sudo systemctl restart "$service"
+        ;;
+    devices)
+        sudo /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll --list-devices
+        ;;
+    edit)
+        sudoedit /etc/bazzite-hyperscroll.conf
+        sudo systemctl restart "$service"
+        ;;
+    *)
+        echo "Usage: hyperscrollctl {status|logs|follow|stop|kill|start|restart|devices|edit}" >&2
+        exit 2
+        ;;
+esac

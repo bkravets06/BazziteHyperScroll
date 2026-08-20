@@ -1,0 +1,7 @@
+{
+  "uuid": "bazzite-hyperscroll@local",
+  "name": "Bazzite HyperScroll Sidecar",
+  "description": "Reports GNOME pointer context and draws the HyperScroll anchor.",
+  "shell-version": ["50"],
+  "version": 1
+}
