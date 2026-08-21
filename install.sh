@@ -111,6 +111,8 @@ install -Dm0755 "$project_dir/src/bazzite-hyperscroll" \
     /usr/local/bin/bazzite-hyperscroll
 install -Dm0755 "$project_dir/src/hyperscrollctl" \
     /usr/local/bin/hyperscrollctl
+install -Dm0755 "$project_dir/src/hyperscroll-keybind" \
+    /usr/local/bin/hyperscroll-keybind
 install -Dm0644 "$project_dir/systemd/$service_name" \
     "/etc/systemd/system/$service_name"
 install -Dm0644 "$project_dir/udev/99-bazzite-hyperscroll.rules" \
@@ -161,6 +163,7 @@ fi
 if command -v restorecon >/dev/null; then
     restorecon -F /usr/local/bin/bazzite-hyperscroll \
         /usr/local/bin/hyperscrollctl \
+        /usr/local/bin/hyperscroll-keybind \
         "/etc/systemd/system/$service_name" \
         /etc/udev/rules.d/99-bazzite-hyperscroll.rules \
         /etc/bazzite-hyperscroll.conf >/dev/null 2>&1 || true
@@ -238,8 +241,26 @@ if [[ -S $runtime_dir/bus ]]; then
     [[ $extension_state == Yes ]] && extension_enabled=true
 fi
 
+keybind_accel=${HYPERSCROLL_KEYBIND:-<Super><Shift>m}
+keybind_status="not set"
+if [[ -S $runtime_dir/bus ]]; then
+    existing=$(as_user /usr/local/bin/hyperscroll-keybind show 2>/dev/null \
+        | head -1)
+    if [[ $existing == *"No HyperScroll shortcut"* || -z $existing ]]; then
+        if as_user /usr/local/bin/hyperscroll-keybind set "$keybind_accel" \
+            >/dev/null 2>&1; then
+            keybind_status=$keybind_accel
+        fi
+    else
+        # Already bound, possibly to a key chosen by hand. Leave it alone.
+        keybind_status=$existing
+    fi
+fi
+
 echo
 echo "Bazzite HyperScroll is installed and enabled at every boot."
+echo "On/off shortcut: $keybind_status  (hyperscrollctl keybind set ACCEL)"
+echo "On/off command:  hyperscrollctl toggle"
 echo "Emergency stop:  hyperscrollctl kill"
 echo "Status/logs:      hyperscrollctl status | hyperscrollctl logs"
 if [[ $extension_enabled == true ]]; then

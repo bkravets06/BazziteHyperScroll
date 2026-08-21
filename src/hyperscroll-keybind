@@ -1,0 +1,97 @@
+#!/usr/bin/python3
+"""Manage the GNOME shortcut that switches HyperScroll on and off.
+
+GNOME keeps user-defined shortcuts as a list of dconf paths under
+org.gnome.settings-daemon.plugins.media-keys. This adds exactly one entry, at
+a path of its own, and leaves every other entry in that list untouched - so
+it can be added, changed and removed without disturbing shortcuts the user
+set up themselves.
+
+Run as the desktop user, never as root: it is that user's session settings
+being edited.
+"""
+
+import sys
+
+from gi.repository import Gio
+
+MEDIA_KEYS = "org.gnome.settings-daemon.plugins.media-keys"
+CUSTOM_SCHEMA = MEDIA_KEYS + ".custom-keybinding"
+CUSTOM_PATH = ("/org/gnome/settings-daemon/plugins/media-keys/"
+               "custom-keybindings/bazzite-hyperscroll/")
+COMMAND = "/usr/local/bin/hyperscrollctl toggle"
+NAME = "HyperScroll on/off"
+DEFAULT_ACCEL = "<Super><Shift>m"
+USAGE = """usage: hyperscroll-keybind [show | set ACCEL | clear]
+
+  show          print the shortcut currently bound, if any
+  set ACCEL     bind ACCEL, in GNOME's notation: "<Super><Shift>m",
+                "<Ctrl><Alt>m", "<Super>backslash", "Pause"
+  clear         remove the shortcut
+
+The shortcut runs: %s""" % COMMAND
+
+
+def entry():
+    return Gio.Settings.new_with_path(CUSTOM_SCHEMA, CUSTOM_PATH)
+
+
+def listed():
+    """The custom-shortcut paths GNOME knows about."""
+    return Gio.Settings.new(MEDIA_KEYS).get_strv("custom-keybindings")
+
+
+def show():
+    if CUSTOM_PATH not in listed():
+        print("No HyperScroll shortcut is bound.")
+        return 0
+    binding = entry().get_string("binding")
+    print(binding if binding else "No HyperScroll shortcut is bound.")
+    return 0
+
+
+def set_accel(accel):
+    if not accel.strip():
+        print("An empty shortcut cannot be bound.", file=sys.stderr)
+        return 2
+    settings = entry()
+    settings.set_string("name", NAME)
+    settings.set_string("command", COMMAND)
+    settings.set_string("binding", accel)
+    media = Gio.Settings.new(MEDIA_KEYS)
+    paths = listed()
+    if CUSTOM_PATH not in paths:
+        media.set_strv("custom-keybindings", [*paths, CUSTOM_PATH])
+    Gio.Settings.sync()
+    print(f"{accel} now toggles HyperScroll.")
+    print("Change or remove it in Settings > Keyboard > "
+          "View and Customize Shortcuts > Custom Shortcuts.")
+    return 0
+
+
+def clear():
+    media = Gio.Settings.new(MEDIA_KEYS)
+    paths = [path for path in listed() if path != CUSTOM_PATH]
+    media.set_strv("custom-keybindings", paths)
+    settings = entry()
+    for key in ("name", "command", "binding"):
+        settings.reset(key)
+    Gio.Settings.sync()
+    print("The HyperScroll shortcut was removed.")
+    return 0
+
+
+def main(argv):
+    action = argv[1] if len(argv) > 1 else "show"
+    if action == "show":
+        return show()
+    if action == "set":
+        return set_accel(argv[2] if len(argv) > 2 else DEFAULT_ACCEL)
+    if action == "clear":
+        return clear()
+    print(USAGE, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

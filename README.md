@@ -57,6 +57,9 @@ Wayland session. After that, there is nothing to launch manually.
    means greater speed.
 3. Press any mouse button to stop.
 
+Press **Super+Shift+M** at any time to switch HyperScroll off, which gives
+the middle button back to the app until you press it again.
+
 The middle button is dedicated to HyperScroll in enabled apps, so a plain
 middle click no longer opens a browser link in a new tab there. Apps in the
 blacklist receive native middle-button input unchanged.
@@ -67,6 +70,32 @@ the pointer over the target app: moving it onto a panel or the overview
 simply means nothing scrolls there, and scrolling resumes when it comes
 back. A blacklisted app taking focus does end the session, as does losing
 the GNOME sidecar; the journal records which one it was.
+
+## Turning it on and off
+
+The middle button is dedicated to autoscroll while HyperScroll is on, which
+is not always what is wanted - middle-click paste, opening a link in a new
+tab, a game that uses the wheel button. Pressing **Super+Shift+M** switches
+it off and on again, with a brief on-screen indicator either way. While it is
+off, the middle button behaves exactly as it did before HyperScroll existed.
+
+The same thing from a terminal, and how to change the shortcut:
+
+```bash
+hyperscrollctl toggle          # flip it
+hyperscrollctl off             # or: on
+hyperscrollctl keybind         # show the current shortcut
+hyperscrollctl keybind set "<Ctrl><Alt>m"
+hyperscrollctl keybind clear   # remove it
+```
+
+The shortcut is an ordinary GNOME custom shortcut, so it also appears under
+Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts, and
+can be rebound there. The installer leaves an existing binding alone.
+
+Switching off is for the moment, not forever: it survives a service restart
+but not a reboot. To have the middle button stay native in one particular
+app, add that app to `BLACKLIST` instead.
 
 ## Status, tuning, and recovery
 
@@ -134,7 +163,9 @@ Things worth checking, in order:
    ACL hides the device completely. `getfacl /dev/input/eventN` shows it, and
    rerunning `./install.sh` repairs the rule. The daemon also says so in the
    journal once a minute while it has nothing to grab.
-4. The app is not in `BLACKLIST`, and the pointer is over an application
+4. HyperScroll is not switched off. `hyperscrollctl toggle` reports which
+   state it just moved to, and `doctor` shows the current one.
+5. The app is not in `BLACKLIST`, and the pointer is over an application
    window rather than a panel or the overview.
 
 To remove the feature:

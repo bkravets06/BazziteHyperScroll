@@ -23,6 +23,19 @@ case "${1:-status}" in
     restart)
         sudo systemctl restart "$service"
         ;;
+    toggle|on|off)
+        # No sudo: the daemon checks that the caller is the user at the
+        # screen, which is the same rule it applies to the GNOME sidecar.
+        case "${1}" in
+            on) action=resume ;;
+            off) action=pause ;;
+            *) action=toggle ;;
+        esac
+        /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll --control "$action"
+        ;;
+    keybind)
+        /usr/local/bin/hyperscroll-keybind "${@:2}"
+        ;;
     devices)
         sudo /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll --list-devices
         ;;
@@ -48,6 +61,11 @@ case "${1:-status}" in
         sudo /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll \
             --list-devices 2>/dev/null | grep -B2 '^    used:' || \
             echo "no device is selected by ONLY_DEVICES right now"
+        echo
+        echo "== toggle =="
+        /usr/bin/python3 /usr/local/bin/bazzite-hyperscroll --control status ||
+            true
+        echo "shortcut: $(/usr/local/bin/hyperscroll-keybind show 2>&1)"
         echo
         echo "== session =="
         echo "desktop: ${XDG_CURRENT_DESKTOP:-unknown} (${XDG_SESSION_TYPE:-unknown})"
@@ -78,7 +96,7 @@ case "${1:-status}" in
         sudo systemctl restart "$service"
         ;;
     *)
-        echo "Usage: hyperscrollctl {status|logs|follow|stop|kill|start|restart|devices|doctor|edit}" >&2
+        echo "Usage: hyperscrollctl {toggle|on|off|keybind|status|logs|follow|stop|kill|start|restart|devices|doctor|edit}" >&2
         exit 2
         ;;
 esac

@@ -4,7 +4,8 @@ import GLib from 'gi://GLib';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension, gettext as _}
+    from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const SOCKET_PATH = '/run/bazzite-hyperscroll/state.sock';
@@ -40,6 +41,7 @@ export default class BazziteHyperScrollExtension extends Extension {
         this._overShellChrome = true;
         this._pointerWindow = null;
         this._scrollActive = false;
+        this._paused = undefined;
         this._anchorX = 0;
         this._anchorY = 0;
         this._watchedWindow = null;
@@ -417,6 +419,24 @@ export default class BazziteHyperScrollExtension extends Extension {
             this._startScrollTracking();
         else if (line === '0')
             this._stopScrollTracking();
+        else if (line.startsWith('paused '))
+            this._pausedChanged(line.slice('paused '.length) !== '0');
+    }
+
+    _pausedChanged(paused) {
+        if (paused)
+            this._stopScrollTracking();
+        // The state on connect is the current one, not a change worth
+        // announcing; only report what the user just did.
+        const known = this._paused !== undefined;
+        const changed = this._paused !== paused;
+        this._paused = paused;
+        if (!known || !changed)
+            return;
+        Main.osdWindowManager.show(
+            -1,
+            new Gio.ThemedIcon({name: 'input-mouse-symbolic'}),
+            paused ? _('HyperScroll off') : _('HyperScroll on'));
     }
 
     _startScrollTracking() {
@@ -469,6 +489,7 @@ export default class BazziteHyperScrollExtension extends Extension {
         this._pendingOffset = null;
         this._lastFocusIdentity = null;
         this._lastFocusQueueUsec = 0;
+        this._paused = undefined;
         cancellable?.cancel();
         try {
             connection?.close(null);

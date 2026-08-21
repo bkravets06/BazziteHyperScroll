@@ -17,6 +17,9 @@ if [[ -n $target_user && $target_user != root ]]; then
     if [[ -S $runtime_dir/bus ]]; then
         sudo -u "$target_user" env XDG_RUNTIME_DIR="$runtime_dir" \
             DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus" \
+            /usr/local/bin/hyperscroll-keybind clear 2>/dev/null || true
+        sudo -u "$target_user" env XDG_RUNTIME_DIR="$runtime_dir" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus" \
             gnome-extensions disable "$extension_uuid" 2>/dev/null || true
         sudo -u "$target_user" env XDG_RUNTIME_DIR="$runtime_dir" \
             DBUS_SESSION_BUS_ADDRESS="unix:path=$runtime_dir/bus" \
@@ -50,7 +53,8 @@ fi
 rm -f "/etc/systemd/system/$service_name" \
     /etc/udev/rules.d/99-bazzite-hyperscroll.rules \
     /usr/local/bin/bazzite-hyperscroll \
-    /usr/local/bin/hyperscrollctl
+    /usr/local/bin/hyperscrollctl \
+    /usr/local/bin/hyperscroll-keybind
 systemctl daemon-reload
 udevadm control --reload-rules
 udevadm trigger --action=change --subsystem-match=input

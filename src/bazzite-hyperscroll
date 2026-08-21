@@ -80,6 +80,12 @@ BLACKLIST = ["freecad", "orcaslicer", "minecraft", "blender", "steam"]
 # blacklist always wins. Empty means every non-blacklisted application.
 ALLOWLIST = []
 
+# Set at runtime by `hyperscrollctl toggle` (or its keyboard shortcut), never
+# from the config file. While paused the middle button behaves natively in
+# every app, so a plain middle click pastes and opens links in new tabs again.
+# It is deliberately not persistent: it lives in /run and a reboot clears it.
+PAUSED = False
+
 # Fail safe when the GNOME helper is unavailable: native middle-button
 # behavior is preserved instead of unexpectedly taking over CAD or games.
 REQUIRE_FOCUS_HELPER = True
@@ -115,6 +121,7 @@ CONFIG_PATH = "/etc/bazzite-hyperscroll.conf"
 SOCK_DIR = "/run/bazzite-hyperscroll"
 SOCK_PATH = SOCK_DIR + "/state.sock"
 GRAB_PATH = SOCK_DIR + "/grabbed"
+PAUSE_PATH = SOCK_DIR + "/paused"
 DEV_DIR = "/dev/input"
 
 # Bounds. The config picks which devices the system daemon opens and the state
@@ -124,10 +131,12 @@ MAX_CONFIG_BYTES = 65536   # a config bigger than this is ignored
 MAX_SPECS = 32             # device specs per list
 MAX_SPEC_LEN = 128         # characters per device spec
 MIN_NAME_SPEC = 3          # a shorter name fragment would match everything
+RESUME_HINT = "run `hyperscrollctl toggle` to switch back on"
 MAX_GRABBED = 16           # devices grabbed at once
 MAX_CLIENTS = 16           # state-socket connections
 MAX_CLIENTS_PER_UID = 4
 SOCK_LIMIT = 4096          # per-connection read buffer
+CONTROL_TIMEOUT = 2.0      # seconds a control command waits
 MAX_FOCUS_LEN = 256        # characters kept from a focus report
 FOCUS_TTL = 3.0            # fail safe if the sidecar stops heartbeating
 NATIVE_LOG_INTERVAL = 10.0 # seconds between 'left native' warnings
@@ -372,6 +381,38 @@ def sd_notify(message):
         log.debug("sd_notify failed: %s", err)
 
 
+def set_paused(paused):
+    """Record the pause state where a restarted daemon will find it.
+
+    In the runtime directory, so it survives a crash-restart mid-session but
+    never a reboot: a toggle is meant for right now, and the config file is
+    where a permanent choice belongs.
+    """
+    global PAUSED
+    PAUSED = bool(paused)
+    try:
+        if not PAUSED:
+            try:
+                os.unlink(PAUSE_PATH)
+            except FileNotFoundError:
+                pass
+            return
+        fd = os.open(PAUSE_PATH,
+                     os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW,
+                     0o600)
+        os.close(fd)
+    except OSError as err:
+        log.warning("cannot record the pause state: %s", err)
+
+
+def load_paused():
+    """Restore the pause state a previous run of this daemon left behind."""
+    global PAUSED
+    PAUSED = os.path.exists(PAUSE_PATH)
+    if PAUSED:
+        log.info("starting paused; %s", RESUME_HINT)
+
+
 def set_grab_health(active, path=""):
     """Publish whether at least one selected physical mouse is grabbed."""
     try:
@@ -518,6 +559,8 @@ class FocusFilter:
         short the moment the pointer leaves the app. A blacklisted app taking
         focus still stops it, and so does losing the sidecar.
         """
+        if PAUSED:
+            return f"HyperScroll is paused; {RESUME_HINT}"
         now = time.monotonic()
         identities = [
             identity for client, identity in self.by_client.items()
@@ -576,7 +619,9 @@ class FocusFilter:
         if now - self.last_native_log < NATIVE_LOG_INTERVAL:
             return
         self.last_native_log = now
-        log.warning("middle click left native: %s", reason)
+        # A pause is a decision, not a fault; the rest are worth a warning.
+        (log.info if PAUSED else log.warning)(
+            "middle click left native: %s", reason)
 
 
 class Notifier:
@@ -647,12 +692,29 @@ class Notifier:
             self.active_uids |= {uid}
         try:
             writer.write(self.msg)
+            writer.write(b"paused %d\n" % PAUSED)
             while True:
                 line = await reader.readline()
                 if not line:
                     break
                 text = line.decode("utf-8", "replace").strip()
-                if text.startswith("focus "):
+                if text in ("toggle", "pause", "resume", "status"):
+                    # Only the person actually at the screen may switch the
+                    # feature on or off, the same rule the reports follow.
+                    if _uid_is_active(uid):
+                        if text != "status":
+                            set_paused({"pause": True, "resume": False}
+                                       .get(text, not PAUSED))
+                            log.info("%s by the session",
+                                     "paused" if PAUSED else "resumed")
+                            self.announce_paused()
+                    else:
+                        self.focus.rejected_reports += 1
+                    # Answered under its own prefix: a control client must
+                    # not mistake the state sent on connect, which describes
+                    # the moment before its verb was applied, for the reply.
+                    writer.write(b"control %d\n" % PAUSED)
+                elif text.startswith("focus "):
                     if _uid_is_active(uid):
                         self.focus.update(client, text[len("focus "):])
                     else:
@@ -715,6 +777,10 @@ class Notifier:
             self.active_uids = frozenset(
                 u for u in set(self.writers.values()) if _uid_is_active(u))
         self._broadcast(msg)
+
+    def announce_paused(self):
+        """Tell every helper, so the desktop can show what just happened."""
+        self._broadcast(b"paused %d\n" % PAUSED)
 
     def pos(self, dx, dy):
         """Offset of the ghost cursor from the anchor, in screen pixels."""
@@ -1445,6 +1511,7 @@ async def main():
     last_idle_log = -IDLE_LOG_INTERVAL
     our_paths = set()  # event nodes of our own uinput mirrors, never grabbed
     set_grab_health(False)
+    load_paused()
     if not phys_roundtrips():
         log.warning("uinput phys marker did not round-trip; relying on "
                     "device-path tracking to skip our own mirrors")
@@ -1520,6 +1587,43 @@ async def main():
         tick_task.cancel()
         for t in list(tasks.values()):
             t.cancel()
+
+
+def control(action):
+    """Send one control verb to the running daemon and report the state.
+
+    This is the client half of `hyperscrollctl toggle`. It runs as the
+    desktop user, not as the service: the daemon decides whether to believe
+    it, by the same rule it applies to the sidecar's reports.
+    """
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.settimeout(CONTROL_TIMEOUT)
+            sock.connect(SOCK_PATH)
+            sock.sendall((action + "\n").encode("utf-8"))
+            buf = b""
+            while len(buf) < SOCK_LIMIT:
+                chunk = sock.recv(256)
+                if not chunk:
+                    break
+                buf += chunk
+                for line in buf.split(b"\n"):
+                    if line.startswith(b"control "):
+                        paused = line.split()[1] != b"0"
+                        print("HyperScroll is off; the middle button is a "
+                              "normal middle button" if paused
+                              else "HyperScroll is on; middle click starts "
+                              "autoscroll")
+                        return 0
+    except FileNotFoundError:
+        print(f"{SOCK_PATH} is missing; the service is not running.",
+              file=sys.stderr)
+        return 1
+    except (OSError, socket.timeout) as err:
+        print(f"cannot reach the service: {err}", file=sys.stderr)
+        return 1
+    print("the service did not answer", file=sys.stderr)
+    return 1
 
 
 def _float_arg(key):
@@ -1606,6 +1710,12 @@ def parse_args(argv=None):
                    default=None, dest="only_devices",
                    help="strict device allowlist; repeatable and replaces "
                         "the configured list")
+    p.add_argument("--control", metavar="ACTION", default=None,
+                   choices=("toggle", "pause", "resume", "status"),
+                   help="ask the running service to turn autoscroll on or "
+                        "off for this session and exit: toggle, pause, "
+                        "resume, or status. This is what `hyperscrollctl "
+                        "toggle` and its keyboard shortcut run")
     p.add_argument("--list-devices", action="store_true",
                    help="list every input device with its identifier and "
                         "what HyperScroll would do with it, then exit")
@@ -1647,6 +1757,8 @@ def cli():
                        ("ONLY_DEVICES", args.only_devices)):
         if specs is not None:
             globals()[key] = validate_devices(specs)
+    if args.control:
+        raise SystemExit(control(args.control))
     if args.list_devices:
         report_devices()
         return

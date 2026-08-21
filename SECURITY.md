@@ -42,7 +42,10 @@ The unprivileged GNOME extension connects to a Unix socket under
 `/run/bazzite-hyperscroll`. The daemon accepts reports only from a user that
 logind considers logged in on a seat and accepts cursor offsets only from
 the active user. Messages are bounded and contain app identity plus offset
-from the anchor, never absolute pointer coordinates. Reports are advisory:
+from the anchor, never absolute pointer coordinates. The same active-user
+check gates the on/off control verb, so a background session or a service
+account cannot switch the feature on or off; the state it sets lives in the
+runtime directory and is cleared by a reboot. Reports are advisory:
 they can pause/resume eligibility but cannot change the root-owned device
 selection or executable.
 
