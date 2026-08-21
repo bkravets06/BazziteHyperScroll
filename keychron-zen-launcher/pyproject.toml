@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keychron-zen-launcher"
+version = "0.1.0"
+description = "Configure QMK/VIA Keychron keyboards on Linux, without a Chromium-based browser"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-2.0-or-later" }
+keywords = ["keychron", "qmk", "via", "keyboard", "hid", "gtk4", "linux"]
+classifiers = [
+  "Environment :: X11 Applications :: GTK",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Topic :: Utilities",
+]
+
+# No Python dependencies on purpose. The HID transport talks to /dev/hidraw
+# directly, and the GUI uses PyGObject and GTK 4, which come from the system
+# (or from the GNOME runtime inside the Flatpak) rather than from PyPI.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/bkravets06/keychron-zen-launcher"
+
+[project.scripts]
+keychron-zen-launcher = "keychron_zen.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+keychron_zen = ["protocol/*.json", "model/keyboards/*.json", "ui/*.css"]

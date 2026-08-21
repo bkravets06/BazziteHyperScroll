@@ -1,0 +1,11 @@
+/* Only the bits libadwaita has no opinion about. */
+
+.keycode-button {
+  min-width: 68px;
+  min-height: 48px;
+  padding: 4px 6px;
+}
+
+.keycode-button label.heading {
+  font-size: 0.95em;
+}

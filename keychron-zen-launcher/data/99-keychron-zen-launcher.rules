@@ -1,0 +1,12 @@
+# Keychron QMK/VIA keyboards expose a raw HID interface (usage page 0xFF60)
+# for configuration. Its /dev/hidraw node is root-only by default, so without
+# this rule the launcher can see the keyboard but cannot talk to it.
+#
+# TAG+="uaccess" hands access to whoever is logged in at the seat, via an ACL,
+# rather than opening the device up to every user or process on the machine.
+#
+# 0x3434 is Keychron's USB vendor id and covers the whole Q/K/V/M range.
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", TAG+="uaccess"
+
+# Another VIA keyboard? Copy the line above and swap in its vendor id, which
+# `keychron-zen-launcher --list-devices` prints for anything it can see.

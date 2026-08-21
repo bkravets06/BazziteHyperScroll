@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.bkravets06.KeychronZenLauncher</id>
+  <name>Keychron Zen Launcher</name>
+  <summary>Configure QMK/VIA Keychron keyboards</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+
+  <description>
+    <p>
+      A native replacement for Keychron Launcher, which only runs in
+      Chromium-based browsers because it depends on WebHID. Firefox does not
+      implement WebHID, so this app talks to the keyboard's raw HID interface
+      directly instead.
+    </p>
+    <p>It can:</p>
+    <ul>
+      <li>Remap any key on any layer, and put it back the way it shipped</li>
+      <li>Record and edit the keyboard's macro slots</li>
+      <li>Set the backlight effect, brightness, speed and colour</li>
+      <li>Test every switch, read live from the keyboard's own matrix</li>
+      <li>Save the whole configuration to a JSON file and load it back</li>
+    </ul>
+    <p>
+      It runs only when you open it. There is no daemon, no autostart entry and
+      no background service.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.bkravets06.KeychronZenLauncher.desktop</launchable>
+
+  <categories>
+    <category>Utility</category>
+    <category>Settings</category>
+    <category>HardwareSettings</category>
+  </categories>
+
+  <requires>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </requires>
+
+  <recommends>
+    <display_length compare="ge">1000</display_length>
+  </recommends>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.0" date="2026-08-21">
+      <description>
+        <p>
+          First release. Key remapping across all layers, macro editing,
+          backlight control, a key tester and configuration import/export, with
+          a bundled definition for the Keychron K13 Max in all four variants.
+        </p>
+      </description>
+    </release>
+  </releases>
+</component>

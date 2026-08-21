@@ -1,0 +1,51 @@
+# Flatpak manifest.
+#
+# Build and install for the current user only:
+#   ./scripts/build-flatpak.sh
+#
+# The app is a pure-Python GTK 4 program with no third-party Python
+# dependencies, so the whole build is "copy the files into place" against the
+# GNOME runtime, which already provides Python, PyGObject, GTK 4 and libadwaita.
+id: io.github.bkravets06.KeychronZenLauncher
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: keychron-zen-launcher
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+
+  # Needed to reach /dev/hidraw*, which is how the keyboard is configured.
+  # Flatpak has no narrower device permission for hidraw. This exposes the
+  # device nodes; it does NOT grant permission to open them -- that still comes
+  # from the udev rule's uaccess ACL, so the sandbox can only reach keyboards
+  # the logged-in user could already reach.
+  - --device=all
+
+  # Deliberately absent: no --share=network (the app never talks to anything),
+  # and no --filesystem (saving and loading configuration files goes through
+  # the file chooser portal, which grants access to just the chosen file).
+
+modules:
+  - name: keychron-zen-launcher
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 flatpak/launcher.sh /app/bin/keychron-zen-launcher
+      - mkdir -p /app/lib/keychron-zen-launcher
+      - cp -r src/keychron_zen /app/lib/keychron-zen-launcher/
+      - install -Dm644 data/io.github.bkravets06.KeychronZenLauncher.desktop
+          /app/share/applications/io.github.bkravets06.KeychronZenLauncher.desktop
+      - install -Dm644 data/io.github.bkravets06.KeychronZenLauncher.metainfo.xml
+          /app/share/metainfo/io.github.bkravets06.KeychronZenLauncher.metainfo.xml
+      - install -Dm644 data/icons/io.github.bkravets06.KeychronZenLauncher.svg
+          /app/share/icons/hicolor/scalable/apps/io.github.bkravets06.KeychronZenLauncher.svg
+    sources:
+      - type: dir
+        path: ..
+        # Without these the build directory would be copied into itself.
+        skip:
+          - .flatpak-builder
+          - .git
+          - repo

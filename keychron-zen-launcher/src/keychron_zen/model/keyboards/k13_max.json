@@ -1,0 +1,3753 @@
+{
+  "name": "Keychron K13 Max",
+  "vendor_id": 13364,
+  "matrix": {
+    "rows": 6,
+    "cols": 17
+  },
+  "variants": [
+    {
+      "product_id": 2768,
+      "physical": "ansi",
+      "layout": "ansi_90",
+      "lighting": {
+        "kind": "rgb_matrix",
+        "effects": [
+          {
+            "value": 0,
+            "name": "None"
+          },
+          {
+            "value": 1,
+            "name": "Solid Color"
+          },
+          {
+            "value": 2,
+            "name": "Breathing"
+          },
+          {
+            "value": 3,
+            "name": "Band Spiral Val"
+          },
+          {
+            "value": 4,
+            "name": "Cycle All"
+          },
+          {
+            "value": 5,
+            "name": "Cycle Left Right"
+          },
+          {
+            "value": 6,
+            "name": "Cycle Up Down"
+          },
+          {
+            "value": 7,
+            "name": "Rainbow Moving Chevron"
+          },
+          {
+            "value": 8,
+            "name": "Cycle Out In"
+          },
+          {
+            "value": 9,
+            "name": "Cycle Out In Dual"
+          },
+          {
+            "value": 10,
+            "name": "Cycle Pinwheel"
+          },
+          {
+            "value": 11,
+            "name": "Cycle Spiral"
+          },
+          {
+            "value": 12,
+            "name": "Dual Beacon"
+          },
+          {
+            "value": 13,
+            "name": "Rainbow Beacon"
+          },
+          {
+            "value": 14,
+            "name": "Jellybean Raindrops"
+          },
+          {
+            "value": 15,
+            "name": "Pixel Rain"
+          },
+          {
+            "value": 16,
+            "name": "Typing Heatmap"
+          },
+          {
+            "value": 17,
+            "name": "Digital Rain"
+          },
+          {
+            "value": 18,
+            "name": "Solid Reactive Simple"
+          },
+          {
+            "value": 19,
+            "name": "Solid Reactive Multiwide"
+          },
+          {
+            "value": 20,
+            "name": "Solid Reactive Multinexus"
+          },
+          {
+            "value": 21,
+            "name": "Splash"
+          },
+          {
+            "value": 22,
+            "name": "Solid Splash"
+          }
+        ]
+      },
+      "custom_keycodes": [
+        {
+          "value": 32256,
+          "name": "KC_LOPTN",
+          "label": "Left Option",
+          "description": "Left Option (macOS)"
+        },
+        {
+          "value": 32257,
+          "name": "KC_ROPTN",
+          "label": "Right Option",
+          "description": "Right Option (macOS)"
+        },
+        {
+          "value": 32258,
+          "name": "KC_LCMMD",
+          "label": "Left Command",
+          "description": "Left Command (macOS)"
+        },
+        {
+          "value": 32259,
+          "name": "KC_RCMMD",
+          "label": "Right Command",
+          "description": "Right Command (macOS)"
+        },
+        {
+          "value": 32260,
+          "name": "KC_MCTRL",
+          "label": "Mission Ctrl",
+          "description": "Mission Control (macOS)"
+        },
+        {
+          "value": 32261,
+          "name": "KC_LNPAD",
+          "label": "Launchpad",
+          "description": "Launchpad (macOS)"
+        },
+        {
+          "value": 32262,
+          "name": "KC_TASK",
+          "label": "Task View",
+          "description": "Task View (Windows)"
+        },
+        {
+          "value": 32263,
+          "name": "KC_FILE",
+          "label": "Explorer",
+          "description": "File Explorer (Windows)"
+        },
+        {
+          "value": 32264,
+          "name": "KC_SNAP",
+          "label": "Screenshot",
+          "description": "Screenshot"
+        },
+        {
+          "value": 32265,
+          "name": "KC_CTANA",
+          "label": "Cortana",
+          "description": "Cortana / Windows search"
+        },
+        {
+          "value": 32266,
+          "name": "KC_SIRI",
+          "label": "Siri",
+          "description": "Siri (macOS)"
+        },
+        {
+          "value": 32267,
+          "name": "BT_HST1",
+          "label": "BT 1",
+          "description": "Pair or switch to Bluetooth host 1"
+        },
+        {
+          "value": 32268,
+          "name": "BT_HST2",
+          "label": "BT 2",
+          "description": "Pair or switch to Bluetooth host 2"
+        },
+        {
+          "value": 32269,
+          "name": "BT_HST3",
+          "label": "BT 3",
+          "description": "Pair or switch to Bluetooth host 3"
+        },
+        {
+          "value": 32270,
+          "name": "P2P4G",
+          "label": "2.4 GHz",
+          "description": "Switch to the 2.4 GHz receiver"
+        },
+        {
+          "value": 32271,
+          "name": "BAT_LVL",
+          "label": "Battery",
+          "description": "Show the battery level on the backlight"
+        }
+      ],
+      "default_keymap": [
+        [
+          "KC_ESC",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E04",
+          "0x7E05",
+          "RGB_VAD",
+          "RGB_VAI",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_BSLS",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "0x7E00",
+          "0x7E02",
+          "KC_SPC",
+          "0x7E03",
+          "0x7E01",
+          "MO(1)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_TOG",
+          "RGB_MOD",
+          "RGB_VAI",
+          "RGB_HUI",
+          "RGB_SAI",
+          "RGB_SPI",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_RMOD",
+          "RGB_VAD",
+          "RGB_HUD",
+          "RGB_SAD",
+          "RGB_SPD",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ],
+        [
+          "KC_ESC",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_BSLS",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "KC_LCMD",
+          "KC_LALT",
+          "KC_SPC",
+          "KC_ALGR",
+          "KC_RCMD",
+          "MO(3)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E06",
+          "0x7E07",
+          "RGB_VAD",
+          "RGB_VAI",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_TOG",
+          "RGB_MOD",
+          "RGB_VAI",
+          "RGB_HUI",
+          "RGB_SAI",
+          "RGB_SPI",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_RMOD",
+          "RGB_VAD",
+          "RGB_HUD",
+          "RGB_SAD",
+          "RGB_SPD",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ]
+      ]
+    },
+    {
+      "product_id": 2771,
+      "physical": "ansi",
+      "layout": "ansi_90",
+      "lighting": {
+        "kind": "led_matrix",
+        "effects": [
+          {
+            "value": 0,
+            "name": "None"
+          },
+          {
+            "value": 1,
+            "name": "Solid"
+          },
+          {
+            "value": 2,
+            "name": "Breathing"
+          },
+          {
+            "value": 3,
+            "name": "Band Pinwheel"
+          },
+          {
+            "value": 4,
+            "name": "Band Spiral"
+          },
+          {
+            "value": 5,
+            "name": "Cycle Left Right"
+          },
+          {
+            "value": 6,
+            "name": "Cycle Up Down"
+          },
+          {
+            "value": 7,
+            "name": "Cycle Out In"
+          },
+          {
+            "value": 8,
+            "name": "Dual Beacon"
+          },
+          {
+            "value": 9,
+            "name": "Solid Reactive Simple"
+          },
+          {
+            "value": 10,
+            "name": "Solid Reactive Multiwide"
+          },
+          {
+            "value": 11,
+            "name": "Solid Reactive Multinexus"
+          },
+          {
+            "value": 12,
+            "name": "Solid Splash"
+          },
+          {
+            "value": 13,
+            "name": "Wave Left Right"
+          },
+          {
+            "value": 14,
+            "name": "Wave Up Down"
+          }
+        ]
+      },
+      "custom_keycodes": [
+        {
+          "value": 32256,
+          "name": "KC_LOPTN",
+          "label": "Left Option",
+          "description": "Left Option (macOS)"
+        },
+        {
+          "value": 32257,
+          "name": "KC_ROPTN",
+          "label": "Right Option",
+          "description": "Right Option (macOS)"
+        },
+        {
+          "value": 32258,
+          "name": "KC_LCMMD",
+          "label": "Left Command",
+          "description": "Left Command (macOS)"
+        },
+        {
+          "value": 32259,
+          "name": "KC_RCMMD",
+          "label": "Right Command",
+          "description": "Right Command (macOS)"
+        },
+        {
+          "value": 32260,
+          "name": "KC_MCTRL",
+          "label": "Mission Ctrl",
+          "description": "Mission Control (macOS)"
+        },
+        {
+          "value": 32261,
+          "name": "KC_LNPAD",
+          "label": "Launchpad",
+          "description": "Launchpad (macOS)"
+        },
+        {
+          "value": 32262,
+          "name": "KC_TASK",
+          "label": "Task View",
+          "description": "Task View (Windows)"
+        },
+        {
+          "value": 32263,
+          "name": "KC_FILE",
+          "label": "Explorer",
+          "description": "File Explorer (Windows)"
+        },
+        {
+          "value": 32264,
+          "name": "KC_SNAP",
+          "label": "Screenshot",
+          "description": "Screenshot"
+        },
+        {
+          "value": 32265,
+          "name": "KC_CTANA",
+          "label": "Cortana",
+          "description": "Cortana / Windows search"
+        },
+        {
+          "value": 32266,
+          "name": "KC_SIRI",
+          "label": "Siri",
+          "description": "Siri (macOS)"
+        },
+        {
+          "value": 32267,
+          "name": "BT_HST1",
+          "label": "BT 1",
+          "description": "Pair or switch to Bluetooth host 1"
+        },
+        {
+          "value": 32268,
+          "name": "BT_HST2",
+          "label": "BT 2",
+          "description": "Pair or switch to Bluetooth host 2"
+        },
+        {
+          "value": 32269,
+          "name": "BT_HST3",
+          "label": "BT 3",
+          "description": "Pair or switch to Bluetooth host 3"
+        },
+        {
+          "value": 32270,
+          "name": "P2P4G",
+          "label": "2.4 GHz",
+          "description": "Switch to the 2.4 GHz receiver"
+        },
+        {
+          "value": 32271,
+          "name": "BAT_LVL",
+          "label": "Battery",
+          "description": "Show the battery level on the backlight"
+        },
+        {
+          "value": 32272,
+          "name": "BL_SPI",
+          "label": "Speed +",
+          "description": "Backlight effect speed up"
+        },
+        {
+          "value": 32273,
+          "name": "BL_SPD",
+          "label": "Speed -",
+          "description": "Backlight effect speed down"
+        }
+      ],
+      "default_keymap": [
+        [
+          "KC_ESC",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E04",
+          "0x7E05",
+          "BL_DOWN",
+          "BL_UP",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_BSLS",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "0x7E00",
+          "0x7E02",
+          "KC_SPC",
+          "0x7E03",
+          "0x7E01",
+          "MO(1)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_TOGG",
+          "BL_STEP",
+          "BL_UP",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_DOWN",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ],
+        [
+          "KC_ESC",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_BSLS",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "KC_LCMD",
+          "KC_LALT",
+          "KC_SPC",
+          "KC_ALGR",
+          "KC_RCMD",
+          "MO(3)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E06",
+          "0x7E07",
+          "BL_DOWN",
+          "BL_UP",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_TOGG",
+          "BL_STEP",
+          "BL_UP",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_DOWN",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ]
+      ]
+    },
+    {
+      "product_id": 2769,
+      "physical": "iso",
+      "layout": "iso_91",
+      "lighting": {
+        "kind": "rgb_matrix",
+        "effects": [
+          {
+            "value": 0,
+            "name": "None"
+          },
+          {
+            "value": 1,
+            "name": "Solid Color"
+          },
+          {
+            "value": 2,
+            "name": "Breathing"
+          },
+          {
+            "value": 3,
+            "name": "Band Spiral Val"
+          },
+          {
+            "value": 4,
+            "name": "Cycle All"
+          },
+          {
+            "value": 5,
+            "name": "Cycle Left Right"
+          },
+          {
+            "value": 6,
+            "name": "Cycle Up Down"
+          },
+          {
+            "value": 7,
+            "name": "Rainbow Moving Chevron"
+          },
+          {
+            "value": 8,
+            "name": "Cycle Out In"
+          },
+          {
+            "value": 9,
+            "name": "Cycle Out In Dual"
+          },
+          {
+            "value": 10,
+            "name": "Cycle Pinwheel"
+          },
+          {
+            "value": 11,
+            "name": "Cycle Spiral"
+          },
+          {
+            "value": 12,
+            "name": "Dual Beacon"
+          },
+          {
+            "value": 13,
+            "name": "Rainbow Beacon"
+          },
+          {
+            "value": 14,
+            "name": "Jellybean Raindrops"
+          },
+          {
+            "value": 15,
+            "name": "Pixel Rain"
+          },
+          {
+            "value": 16,
+            "name": "Typing Heatmap"
+          },
+          {
+            "value": 17,
+            "name": "Digital Rain"
+          },
+          {
+            "value": 18,
+            "name": "Solid Reactive Simple"
+          },
+          {
+            "value": 19,
+            "name": "Solid Reactive Multiwide"
+          },
+          {
+            "value": 20,
+            "name": "Solid Reactive Multinexus"
+          },
+          {
+            "value": 21,
+            "name": "Splash"
+          },
+          {
+            "value": 22,
+            "name": "Solid Splash"
+          }
+        ]
+      },
+      "custom_keycodes": [
+        {
+          "value": 32256,
+          "name": "KC_LOPTN",
+          "label": "Left Option",
+          "description": "Left Option (macOS)"
+        },
+        {
+          "value": 32257,
+          "name": "KC_ROPTN",
+          "label": "Right Option",
+          "description": "Right Option (macOS)"
+        },
+        {
+          "value": 32258,
+          "name": "KC_LCMMD",
+          "label": "Left Command",
+          "description": "Left Command (macOS)"
+        },
+        {
+          "value": 32259,
+          "name": "KC_RCMMD",
+          "label": "Right Command",
+          "description": "Right Command (macOS)"
+        },
+        {
+          "value": 32260,
+          "name": "KC_MCTRL",
+          "label": "Mission Ctrl",
+          "description": "Mission Control (macOS)"
+        },
+        {
+          "value": 32261,
+          "name": "KC_LNPAD",
+          "label": "Launchpad",
+          "description": "Launchpad (macOS)"
+        },
+        {
+          "value": 32262,
+          "name": "KC_TASK",
+          "label": "Task View",
+          "description": "Task View (Windows)"
+        },
+        {
+          "value": 32263,
+          "name": "KC_FILE",
+          "label": "Explorer",
+          "description": "File Explorer (Windows)"
+        },
+        {
+          "value": 32264,
+          "name": "KC_SNAP",
+          "label": "Screenshot",
+          "description": "Screenshot"
+        },
+        {
+          "value": 32265,
+          "name": "KC_CTANA",
+          "label": "Cortana",
+          "description": "Cortana / Windows search"
+        },
+        {
+          "value": 32266,
+          "name": "KC_SIRI",
+          "label": "Siri",
+          "description": "Siri (macOS)"
+        },
+        {
+          "value": 32267,
+          "name": "BT_HST1",
+          "label": "BT 1",
+          "description": "Pair or switch to Bluetooth host 1"
+        },
+        {
+          "value": 32268,
+          "name": "BT_HST2",
+          "label": "BT 2",
+          "description": "Pair or switch to Bluetooth host 2"
+        },
+        {
+          "value": 32269,
+          "name": "BT_HST3",
+          "label": "BT 3",
+          "description": "Pair or switch to Bluetooth host 3"
+        },
+        {
+          "value": 32270,
+          "name": "P2P4G",
+          "label": "2.4 GHz",
+          "description": "Switch to the 2.4 GHz receiver"
+        },
+        {
+          "value": 32271,
+          "name": "BAT_LVL",
+          "label": "Battery",
+          "description": "Show the battery level on the backlight"
+        }
+      ],
+      "default_keymap": [
+        [
+          "KC_ESC",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E04",
+          "0x7E05",
+          "RGB_VAD",
+          "RGB_VAI",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_NUHS",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_NUBS",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "0x7E00",
+          "0x7E02",
+          "KC_SPC",
+          "0x7E03",
+          "0x7E01",
+          "MO(1)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_TOG",
+          "RGB_MOD",
+          "RGB_VAI",
+          "RGB_HUI",
+          "RGB_SAI",
+          "RGB_SPI",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_RMOD",
+          "RGB_VAD",
+          "RGB_HUD",
+          "RGB_SAD",
+          "RGB_SPD",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ],
+        [
+          "KC_ESC",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_NUHS",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_NUBS",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "KC_LCMD",
+          "KC_LALT",
+          "KC_SPC",
+          "KC_ALGR",
+          "KC_RCMD",
+          "MO(3)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E06",
+          "0x7E07",
+          "RGB_VAD",
+          "RGB_VAI",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_TOG",
+          "RGB_MOD",
+          "RGB_VAI",
+          "RGB_HUI",
+          "RGB_SAI",
+          "RGB_SPI",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "RGB_RMOD",
+          "RGB_VAD",
+          "RGB_HUD",
+          "RGB_SAD",
+          "RGB_SPD",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ]
+      ]
+    },
+    {
+      "product_id": 2772,
+      "physical": "iso",
+      "layout": "iso_91",
+      "lighting": {
+        "kind": "led_matrix",
+        "effects": [
+          {
+            "value": 0,
+            "name": "None"
+          },
+          {
+            "value": 1,
+            "name": "Solid"
+          },
+          {
+            "value": 2,
+            "name": "Breathing"
+          },
+          {
+            "value": 3,
+            "name": "Band Pinwheel"
+          },
+          {
+            "value": 4,
+            "name": "Band Spiral"
+          },
+          {
+            "value": 5,
+            "name": "Cycle Left Right"
+          },
+          {
+            "value": 6,
+            "name": "Cycle Up Down"
+          },
+          {
+            "value": 7,
+            "name": "Cycle Out In"
+          },
+          {
+            "value": 8,
+            "name": "Dual Beacon"
+          },
+          {
+            "value": 9,
+            "name": "Solid Reactive Simple"
+          },
+          {
+            "value": 10,
+            "name": "Solid Reactive Multiwide"
+          },
+          {
+            "value": 11,
+            "name": "Solid Reactive Multinexus"
+          },
+          {
+            "value": 12,
+            "name": "Solid Splash"
+          },
+          {
+            "value": 13,
+            "name": "Wave Left Right"
+          },
+          {
+            "value": 14,
+            "name": "Wave Up Down"
+          }
+        ]
+      },
+      "custom_keycodes": [
+        {
+          "value": 32256,
+          "name": "KC_LOPTN",
+          "label": "Left Option",
+          "description": "Left Option (macOS)"
+        },
+        {
+          "value": 32257,
+          "name": "KC_ROPTN",
+          "label": "Right Option",
+          "description": "Right Option (macOS)"
+        },
+        {
+          "value": 32258,
+          "name": "KC_LCMMD",
+          "label": "Left Command",
+          "description": "Left Command (macOS)"
+        },
+        {
+          "value": 32259,
+          "name": "KC_RCMMD",
+          "label": "Right Command",
+          "description": "Right Command (macOS)"
+        },
+        {
+          "value": 32260,
+          "name": "KC_MCTRL",
+          "label": "Mission Ctrl",
+          "description": "Mission Control (macOS)"
+        },
+        {
+          "value": 32261,
+          "name": "KC_LNPAD",
+          "label": "Launchpad",
+          "description": "Launchpad (macOS)"
+        },
+        {
+          "value": 32262,
+          "name": "KC_TASK",
+          "label": "Task View",
+          "description": "Task View (Windows)"
+        },
+        {
+          "value": 32263,
+          "name": "KC_FILE",
+          "label": "Explorer",
+          "description": "File Explorer (Windows)"
+        },
+        {
+          "value": 32264,
+          "name": "KC_SNAP",
+          "label": "Screenshot",
+          "description": "Screenshot"
+        },
+        {
+          "value": 32265,
+          "name": "KC_CTANA",
+          "label": "Cortana",
+          "description": "Cortana / Windows search"
+        },
+        {
+          "value": 32266,
+          "name": "KC_SIRI",
+          "label": "Siri",
+          "description": "Siri (macOS)"
+        },
+        {
+          "value": 32267,
+          "name": "BT_HST1",
+          "label": "BT 1",
+          "description": "Pair or switch to Bluetooth host 1"
+        },
+        {
+          "value": 32268,
+          "name": "BT_HST2",
+          "label": "BT 2",
+          "description": "Pair or switch to Bluetooth host 2"
+        },
+        {
+          "value": 32269,
+          "name": "BT_HST3",
+          "label": "BT 3",
+          "description": "Pair or switch to Bluetooth host 3"
+        },
+        {
+          "value": 32270,
+          "name": "P2P4G",
+          "label": "2.4 GHz",
+          "description": "Switch to the 2.4 GHz receiver"
+        },
+        {
+          "value": 32271,
+          "name": "BAT_LVL",
+          "label": "Battery",
+          "description": "Show the battery level on the backlight"
+        },
+        {
+          "value": 32272,
+          "name": "BL_SPI",
+          "label": "Speed +",
+          "description": "Backlight effect speed up"
+        },
+        {
+          "value": 32273,
+          "name": "BL_SPD",
+          "label": "Speed -",
+          "description": "Backlight effect speed down"
+        }
+      ],
+      "default_keymap": [
+        [
+          "KC_ESC",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E04",
+          "0x7E05",
+          "BL_DOWN",
+          "BL_UP",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_NUHS",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_NUBS",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "0x7E00",
+          "0x7E02",
+          "KC_SPC",
+          "0x7E03",
+          "0x7E01",
+          "MO(1)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_TOGG",
+          "BL_STEP",
+          "BL_UP",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_DOWN",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ],
+        [
+          "KC_ESC",
+          "KC_F1",
+          "KC_F2",
+          "KC_F3",
+          "KC_F4",
+          "KC_F5",
+          "KC_F6",
+          "KC_F7",
+          "KC_F8",
+          "KC_F9",
+          "KC_F10",
+          "KC_F11",
+          "KC_F12",
+          "KC_P7",
+          "KC_P8",
+          "KC_P9",
+          "KC_GRV",
+          "KC_1",
+          "KC_2",
+          "KC_3",
+          "KC_4",
+          "KC_5",
+          "KC_6",
+          "KC_7",
+          "KC_8",
+          "KC_9",
+          "KC_0",
+          "KC_MINS",
+          "KC_EQL",
+          "KC_BSPC",
+          "KC_P4",
+          "KC_P5",
+          "KC_P6",
+          "KC_TAB",
+          "KC_Q",
+          "KC_W",
+          "KC_E",
+          "KC_R",
+          "KC_T",
+          "KC_Y",
+          "KC_U",
+          "KC_I",
+          "KC_O",
+          "KC_P",
+          "KC_LBRC",
+          "KC_RBRC",
+          "KC_P1",
+          "KC_P2",
+          "KC_P3",
+          "KC_CAPS",
+          "KC_A",
+          "KC_S",
+          "KC_D",
+          "KC_F",
+          "KC_G",
+          "KC_H",
+          "KC_J",
+          "KC_K",
+          "KC_L",
+          "KC_SCLN",
+          "KC_QUOT",
+          "KC_NUHS",
+          "KC_ENT",
+          "KC_DEL",
+          "KC_P0",
+          "KC_PDOT",
+          "KC_LSFT",
+          "KC_NUBS",
+          "KC_Z",
+          "KC_X",
+          "KC_C",
+          "KC_V",
+          "KC_B",
+          "KC_N",
+          "KC_M",
+          "KC_COMM",
+          "KC_DOT",
+          "KC_SLSH",
+          "KC_RSFT",
+          "KC_UP",
+          "KC_LCTL",
+          "KC_LCMD",
+          "KC_LALT",
+          "KC_SPC",
+          "KC_ALGR",
+          "KC_RCMD",
+          "MO(3)",
+          "KC_RCTL",
+          "KC_LEFT",
+          "KC_DOWN",
+          "KC_RGHT"
+        ],
+        [
+          "KC_TRNS",
+          "KC_BRID",
+          "KC_BRIU",
+          "0x7E06",
+          "0x7E07",
+          "BL_DOWN",
+          "BL_UP",
+          "KC_MPRV",
+          "KC_MPLY",
+          "KC_MNXT",
+          "KC_MUTE",
+          "KC_VOLD",
+          "KC_VOLU",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0B",
+          "0x7E0C",
+          "0x7E0D",
+          "0x7E0E",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_TOGG",
+          "BL_STEP",
+          "BL_UP",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "BL_DOWN",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_NUM",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "0x7E0F",
+          "NK_TOGG",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS",
+          "KC_TRNS"
+        ]
+      ]
+    }
+  ],
+  "layouts": {
+    "ansi_90": [
+      {
+        "matrix": [
+          0,
+          0
+        ],
+        "x": 0,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          2
+        ],
+        "x": 2,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          3
+        ],
+        "x": 3,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          4
+        ],
+        "x": 4,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          5
+        ],
+        "x": 5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          6
+        ],
+        "x": 6.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          7
+        ],
+        "x": 7.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          8
+        ],
+        "x": 8.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          9
+        ],
+        "x": 9.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          10
+        ],
+        "x": 11,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          11
+        ],
+        "x": 12,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          12
+        ],
+        "x": 13,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          13
+        ],
+        "x": 14,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          14
+        ],
+        "x": 15,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          15
+        ],
+        "x": 16,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          16
+        ],
+        "x": 17,
+        "y": 0
+      },
+      {
+        "matrix": [
+          1,
+          0
+        ],
+        "x": 0,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          1
+        ],
+        "x": 1,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          2
+        ],
+        "x": 2,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          3
+        ],
+        "x": 3,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          4
+        ],
+        "x": 4,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          5
+        ],
+        "x": 5,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          6
+        ],
+        "x": 6,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          7
+        ],
+        "x": 7,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          8
+        ],
+        "x": 8,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          9
+        ],
+        "x": 9,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          10
+        ],
+        "x": 10,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          11
+        ],
+        "x": 11,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          12
+        ],
+        "x": 12,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          13
+        ],
+        "x": 13,
+        "y": 1.25,
+        "w": 2
+      },
+      {
+        "matrix": [
+          1,
+          14
+        ],
+        "x": 15,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          15
+        ],
+        "x": 16,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          16
+        ],
+        "x": 17,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          2,
+          0
+        ],
+        "x": 0,
+        "y": 2.25,
+        "w": 1.5
+      },
+      {
+        "matrix": [
+          2,
+          1
+        ],
+        "x": 1.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          2
+        ],
+        "x": 2.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          3
+        ],
+        "x": 3.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          4
+        ],
+        "x": 4.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          5
+        ],
+        "x": 5.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          6
+        ],
+        "x": 6.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          7
+        ],
+        "x": 7.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          8
+        ],
+        "x": 8.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          9
+        ],
+        "x": 9.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          10
+        ],
+        "x": 10.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          11
+        ],
+        "x": 11.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          12
+        ],
+        "x": 12.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          13
+        ],
+        "x": 13.5,
+        "y": 2.25,
+        "w": 1.5
+      },
+      {
+        "matrix": [
+          2,
+          14
+        ],
+        "x": 15,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          15
+        ],
+        "x": 16,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          16
+        ],
+        "x": 17,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          3,
+          0
+        ],
+        "x": 0,
+        "y": 3.25,
+        "w": 1.75
+      },
+      {
+        "matrix": [
+          3,
+          1
+        ],
+        "x": 1.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          2
+        ],
+        "x": 2.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          3
+        ],
+        "x": 3.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          4
+        ],
+        "x": 4.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          5
+        ],
+        "x": 5.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          6
+        ],
+        "x": 6.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          7
+        ],
+        "x": 7.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          8
+        ],
+        "x": 8.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          9
+        ],
+        "x": 9.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          10
+        ],
+        "x": 10.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          11
+        ],
+        "x": 11.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          13
+        ],
+        "x": 12.75,
+        "y": 3.25,
+        "w": 2.25
+      },
+      {
+        "matrix": [
+          3,
+          14
+        ],
+        "x": 15,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          15
+        ],
+        "x": 16,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          16
+        ],
+        "x": 17,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          4,
+          0
+        ],
+        "x": 0,
+        "y": 4.25,
+        "w": 2.25
+      },
+      {
+        "matrix": [
+          4,
+          2
+        ],
+        "x": 2.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          3
+        ],
+        "x": 3.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          4
+        ],
+        "x": 4.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          5
+        ],
+        "x": 5.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          6
+        ],
+        "x": 6.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          7
+        ],
+        "x": 7.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          8
+        ],
+        "x": 8.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          9
+        ],
+        "x": 9.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          10
+        ],
+        "x": 10.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          11
+        ],
+        "x": 11.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          13
+        ],
+        "x": 12.25,
+        "y": 4.25,
+        "w": 2.75
+      },
+      {
+        "matrix": [
+          4,
+          15
+        ],
+        "x": 16,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          5,
+          0
+        ],
+        "x": 0,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          1
+        ],
+        "x": 1.25,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          2
+        ],
+        "x": 2.5,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          6
+        ],
+        "x": 3.75,
+        "y": 5.25,
+        "w": 6.25
+      },
+      {
+        "matrix": [
+          5,
+          10
+        ],
+        "x": 10,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          11
+        ],
+        "x": 11.25,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          12
+        ],
+        "x": 12.5,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          13
+        ],
+        "x": 13.75,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          14
+        ],
+        "x": 15,
+        "y": 5.25
+      },
+      {
+        "matrix": [
+          5,
+          15
+        ],
+        "x": 16,
+        "y": 5.25
+      },
+      {
+        "matrix": [
+          5,
+          16
+        ],
+        "x": 17,
+        "y": 5.25
+      }
+    ],
+    "iso_91": [
+      {
+        "matrix": [
+          0,
+          0
+        ],
+        "x": 0,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          2
+        ],
+        "x": 2,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          3
+        ],
+        "x": 3,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          4
+        ],
+        "x": 4,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          5
+        ],
+        "x": 5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          6
+        ],
+        "x": 6.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          7
+        ],
+        "x": 7.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          8
+        ],
+        "x": 8.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          9
+        ],
+        "x": 9.5,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          10
+        ],
+        "x": 11,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          11
+        ],
+        "x": 12,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          12
+        ],
+        "x": 13,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          13
+        ],
+        "x": 14,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          14
+        ],
+        "x": 15,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          15
+        ],
+        "x": 16,
+        "y": 0
+      },
+      {
+        "matrix": [
+          0,
+          16
+        ],
+        "x": 17,
+        "y": 0
+      },
+      {
+        "matrix": [
+          1,
+          0
+        ],
+        "x": 0,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          1
+        ],
+        "x": 1,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          2
+        ],
+        "x": 2,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          3
+        ],
+        "x": 3,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          4
+        ],
+        "x": 4,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          5
+        ],
+        "x": 5,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          6
+        ],
+        "x": 6,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          7
+        ],
+        "x": 7,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          8
+        ],
+        "x": 8,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          9
+        ],
+        "x": 9,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          10
+        ],
+        "x": 10,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          11
+        ],
+        "x": 11,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          12
+        ],
+        "x": 12,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          13
+        ],
+        "x": 13,
+        "y": 1.25,
+        "w": 2
+      },
+      {
+        "matrix": [
+          1,
+          14
+        ],
+        "x": 15,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          15
+        ],
+        "x": 16,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          1,
+          16
+        ],
+        "x": 17,
+        "y": 1.25
+      },
+      {
+        "matrix": [
+          2,
+          0
+        ],
+        "x": 0,
+        "y": 2.25,
+        "w": 1.5
+      },
+      {
+        "matrix": [
+          2,
+          1
+        ],
+        "x": 1.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          2
+        ],
+        "x": 2.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          3
+        ],
+        "x": 3.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          4
+        ],
+        "x": 4.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          5
+        ],
+        "x": 5.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          6
+        ],
+        "x": 6.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          7
+        ],
+        "x": 7.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          8
+        ],
+        "x": 8.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          9
+        ],
+        "x": 9.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          10
+        ],
+        "x": 10.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          11
+        ],
+        "x": 11.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          12
+        ],
+        "x": 12.5,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          14
+        ],
+        "x": 15,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          15
+        ],
+        "x": 16,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          2,
+          16
+        ],
+        "x": 17,
+        "y": 2.25
+      },
+      {
+        "matrix": [
+          3,
+          0
+        ],
+        "x": 0,
+        "y": 3.25,
+        "w": 1.75
+      },
+      {
+        "matrix": [
+          3,
+          1
+        ],
+        "x": 1.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          2
+        ],
+        "x": 2.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          3
+        ],
+        "x": 3.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          4
+        ],
+        "x": 4.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          5
+        ],
+        "x": 5.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          6
+        ],
+        "x": 6.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          7
+        ],
+        "x": 7.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          8
+        ],
+        "x": 8.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          9
+        ],
+        "x": 9.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          10
+        ],
+        "x": 10.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          11
+        ],
+        "x": 11.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          13
+        ],
+        "x": 12.75,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          2,
+          13
+        ],
+        "x": 13.75,
+        "y": 2.25,
+        "w": 1.25,
+        "h": 2
+      },
+      {
+        "matrix": [
+          3,
+          14
+        ],
+        "x": 15,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          15
+        ],
+        "x": 16,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          3,
+          16
+        ],
+        "x": 17,
+        "y": 3.25
+      },
+      {
+        "matrix": [
+          4,
+          0
+        ],
+        "x": 0,
+        "y": 4.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          4,
+          1
+        ],
+        "x": 1.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          2
+        ],
+        "x": 2.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          3
+        ],
+        "x": 3.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          4
+        ],
+        "x": 4.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          5
+        ],
+        "x": 5.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          6
+        ],
+        "x": 6.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          7
+        ],
+        "x": 7.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          8
+        ],
+        "x": 8.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          9
+        ],
+        "x": 9.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          10
+        ],
+        "x": 10.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          11
+        ],
+        "x": 11.25,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          4,
+          13
+        ],
+        "x": 12.25,
+        "y": 4.25,
+        "w": 2.75
+      },
+      {
+        "matrix": [
+          4,
+          15
+        ],
+        "x": 16,
+        "y": 4.25
+      },
+      {
+        "matrix": [
+          5,
+          0
+        ],
+        "x": 0,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          1
+        ],
+        "x": 1.25,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          2
+        ],
+        "x": 2.5,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          6
+        ],
+        "x": 3.75,
+        "y": 5.25,
+        "w": 6.25
+      },
+      {
+        "matrix": [
+          5,
+          10
+        ],
+        "x": 10,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          11
+        ],
+        "x": 11.25,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          12
+        ],
+        "x": 12.5,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          13
+        ],
+        "x": 13.75,
+        "y": 5.25,
+        "w": 1.25
+      },
+      {
+        "matrix": [
+          5,
+          14
+        ],
+        "x": 15,
+        "y": 5.25
+      },
+      {
+        "matrix": [
+          5,
+          15
+        ],
+        "x": 16,
+        "y": 5.25
+      },
+      {
+        "matrix": [
+          5,
+          16
+        ],
+        "x": 17,
+        "y": 5.25
+      }
+    ]
+  },
+  "source": {
+    "repository": "https://github.com/Keychron/qmk_firmware",
+    "branch": "wireless_playground",
+    "path": "keyboards/keychron/k13_max"
+  },
+  "layer_names": [
+    "Mac",
+    "Mac Fn",
+    "Windows",
+    "Windows Fn"
+  ]
+}

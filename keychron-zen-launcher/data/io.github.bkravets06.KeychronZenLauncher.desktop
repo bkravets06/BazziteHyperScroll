@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Keychron Zen Launcher
+GenericName=Keyboard Configurator
+Comment=Remap keys, edit macros and set the backlight on Keychron keyboards
+Exec=keychron-zen-launcher
+Icon=io.github.bkravets06.KeychronZenLauncher
+Terminal=false
+Categories=Utility;Settings;HardwareSettings;GTK;
+Keywords=keyboard;keychron;qmk;via;keymap;remap;macro;backlight;rgb;
+StartupNotify=true
+StartupWMClass=io.github.bkravets06.KeychronZenLauncher
